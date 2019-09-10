@@ -1,4 +1,4 @@
-# Squad Bot
+# Disco Foxx (A Discord Bot)
 
 **In active development, everything subject to change 😬**
 
@@ -200,19 +200,19 @@ Refer to the `CARData` interface for a full description of how to configure a CA
 
 #### Szurubooru
 
-Add endpoints (front and backend) to `env.json`
+Add endpoints (front and backend) to `env.szuzubooru.endpoints`
 
 Follow the instructions for [Authentication](https://github.com/rr-/szurubooru/blob/master/doc/API.md#authentication)
 
 * Include [Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication) headers to retrieve a [user token](https://github.com/rr-/szurubooru/blob/master/doc/API.md#creating-user-token)
 * Create an auth token by base64 encoding this value: `userName:userToken`
-* Add the auth token to `env.json`
+* Add the auth token to `env.szuzubooru.token`
 
 #### PUBG
 
-* Register a new app on the [pubg dev api site](https://developer.playbattlegrounds.com/apps/new?locale=en). Copy the token to `env.json`
-* Make sure `db` is specified in `env.json` so user associations are persisted
-* Setup `acl` in the pub portion of `env.json` if you want to restrict usage to certain roles, otherwise all users can use pubg commands
+* Register a new app on the [pubg dev api site](https://developer.playbattlegrounds.com/apps/new?locale=en). Copy the token to `env.pubg.token`
+* Make sure `db` is specified in `env` so user associations are persisted
+* Setup `acl` in the pub portion of `env.pubg.acl` if you want to restrict usage to certain roles, otherwise all users can use pubg commands
 
 ## Developing
 
