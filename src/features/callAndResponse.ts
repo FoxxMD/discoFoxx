@@ -1,6 +1,6 @@
 import er from 'emoji-regex';
 import {normalizeStr, randomIntFromInterval, replaceWithContext, timeStamp} from "../utilities";
-import {Client, DMChannel, Emoji, Message, TextChannel, User} from "discord.js";
+import {DMChannel, Emoji, Message, User} from "discord.js";
 
 const emojiRegex = er();
 
@@ -36,7 +36,7 @@ export interface CARData {
 }
 
 // HOC function to provide the generic CAR function with a bot-specific config
-export const makeCARs = (config: any, client: Client) => {
+export const makeCARs = (config: any, snowflake?: string) => {
     const {data = [], blacklist = [], reply = false, verbose = false} = config || {};
 
     return async (msg: Message) => {
@@ -54,7 +54,7 @@ export const makeCARs = (config: any, client: Client) => {
         }
 
         // process CARs data
-        const process = await processCARS(msg, data, {verbose, snowflake: client.user.id, reply});
+        const process = await processCARS(msg, data, {verbose, snowflake, reply});
         // if a function is returned we have a successful trigger and need to return so replyToUsers can delay if needed
         if (typeof process === 'function') {
             return process;
@@ -66,10 +66,10 @@ export const makeCARs = (config: any, client: Client) => {
 interface processCarsOpts {
     reply: boolean,
     verbose: boolean,
-    snowflake: null | string
+    snowflake: undefined | string
 }
 
-const processCARS = async (message: Message, callAndResponses: CARData[] = [], {reply = false, verbose = false, snowflake = null}: processCarsOpts) => {
+const processCARS = async (message: Message, callAndResponses: CARData[] = [], {reply = false, verbose = false, snowflake = undefined}: processCarsOpts) => {
 
     const {author: {username: user}, channel, mentions: {users: mentionedUsers = []}} = message;
     const channelName = channel instanceof DMChannel ? 'dm' : 'name' in channel ? channel.name : undefined;
@@ -88,7 +88,7 @@ const processCARS = async (message: Message, callAndResponses: CARData[] = [], {
 
     let verboseStrings = [contextString.join(' -> ')];
     let responseContent: string[] = [];
-    let reactions: (string|Emoji)[] = [];
+    let reactions: (string | Emoji)[] = [];
     let warn = false;
 
     // look through each CAR object
