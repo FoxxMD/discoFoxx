@@ -1,2 +1,1 @@
-import { replyOnUsers } from "./replyFunctions";
-export { replyOnUsers };
+export * from "./replyFunctions";
