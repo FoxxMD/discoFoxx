@@ -6,12 +6,12 @@
 
 * NodeJS 9.11 or higher
 * Typescript 3.6 or higher
-* A discord app token (Can be retrieved from [here](https://discordapp.com/developers/applications/))
-* For audio play an FFmpeg library must be installed
+* A [discord app token](https://discordapp.com/developers/applications/)
+* For voice channel usage an FFmpeg library must be installed
 
 ## About
 
-This application uses [discord.js](https://discord.js.org/) to control a bot for your server. It can do:
+This library provides a user and developer friendly bot for [discord.js](https://discord.js.org/). It can do:
 
 * Message parsing (feature) with options:
     * Per user
@@ -51,9 +51,9 @@ This application uses [discord.js](https://discord.js.org/) to control a bot for
 
 `npm install disco-foxx --save`
 
-## Usage
+## Usage (User)
 
-You must provide an `env` object to the constructor of `Bot`. `env` must contain a [discord token](https://discordapp.com/developers/applications). The structure of `env` is:
+An `env` object must be provided to the constructor of `Bot`. `env` must contain a [discord token](https://discordapp.com/developers/applications). The minimum valid structure for `env` is:
 ```json
 {
     "discord": {
@@ -74,9 +74,129 @@ myBot.run(); // bot it now running
 
 ### Events
 
-Documentation coming soon!
+All event listeners are inserted in the order they were created.
+
+foxx-disco will pass through any [discord client](https://discord.js.org/#/docs/main/stable/class/Client) event using the same event api
+
+```js
+myBot.on('message', (messsage) => {
+   console.log(`Message content: ${message.content}`);
+});
+myBot.once('ready', () => {   
+    console.log('Bot is ready');
+});
+```
+
+but extends event listener execution to allow an early exit if your listener returns `true`. This is helpful if one listener meets a condition you want to act on but prevent any later listeners from acting as well.
+
+```js
+myBot.on('message', async (message) => {
+    if(message.content.indexOf('say something') !== -1) {
+        await message.channel.send('Something said.');   
+        return true; // prevents the below listener from executing -- so the bot doesn't respond twice
+    }
+});
+myBot.on('message', async (message) => {
+       if(message.content.indexOf('something less important') !== -1) {
+           await message.channel.send('yes, less important');    
+       }
+});
+```
+
+## Usage (Developers/Extending The Bot)
+
+Extra functionality, such as persistence (using `db`), "immutable" events, and so on can be added by simply extending the `Bot` class. Using ES6 syntax:
+
+```js
+import { Bot } from 'disco-foxx';
+import env from './env.json';
+
+class MyCustomBot extends Bot {
+    constructor(props) {
+        super(props);
+
+        const {env} = props;
+        if(env.steam.token === undefined) {
+            throw new Error('Must define steam token!');
+        }
+        console.log('Starting my custom bot');
+    }
+}
+
+const bot = new MyCustomBot({env});
+bot.run();
+```
+
+### Events
+
+When extending the `Bot` class the `addEvent` class method can be used to specify further listener types: `user`, `botPre`, `botPost`
+
+`Bot` listener types allow a developer to insert listeners at the beginning or end of any user-specified (using `on` or `once`) listeners. This is useful when the developer wants certain actions to only occur if no user listeners returned early, or if the developer wants to ensure their listeners are executed before any user listeners.
+
+```js
+const newEvent = {
+    name: 'bot author response',
+    type: eventType.BOT_PRE, // will be executed before any user-defined listeners on the same event
+    func: async (message) => {
+        if(message.author.id === aBotSnowflake) {
+            await message.channel.send('I know you!');
+            return true;
+        }
+    }
+}
+this.addEvent('message', newEvent);
+```
+
+## Features
+
+`disco-foxx/features` contains modules that can be used to add complex functionality to your bot. They are provided because the author uses them :)
+
+Some features are [Higher Order Functions](https://medium.com/javascript-scene/higher-order-functions-composing-software-5365cf2cbe99) that accept some configuration and return a new function to use with the Bot. 
+These features are prefixed with `make` EX `makeCallAndResponse()` vs `parseBang()`.
+**These features will always return a `function` if they are ready to execute a bot behavior, otherwise they return false.** This is to help the user to determine if they should return early on the executing listener.
+
+### Call And Response (CAR)
+
+CAR functionality is a common feature for most bots:
+
+1. A user sends a message to a channel/DM
+2. The bot detects a word or words in the message
+3. The bot responds with a message or reacts to the user's message
+
+The CAR feature does this with minimal configuration while also allowing fine-tuning of every aspect of the bot's detection and response behavior.
+
+#### Usage
+
+```js
+import { Bot } from 'disco-foxx';
+import { makeCARs } from "disco-foxx/features";
+import env from './env.json';
+
+const carObjects = {
+    data: [
+        {
+            call: ['major tom'],
+            response: ['ground control, anyone out there?']
+        }
+    ]
+}
+const callAndResponse = makeCARs(carObjects);
+
+const bot = new Bot({env});
+bot.on('message', async (message) => {
+    const result = callAndResponse(message);
+    if (typeof result === 'function') { // so we know callAndResponse matched the content and is ready to send a message
+        await result(message);
+        return true;
+    }
+});
+```
+
+Refer to the `CARData` interface for a full description of how to configure a CAR object
+
+### Other feature documentation coming soon
     
-### 3rd Party API Setup
+## 3rd Party API Setup
 
 #### Szurubooru
 
