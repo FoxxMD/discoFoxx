@@ -176,5 +176,3 @@ export class Bot {
         this.onlineStatus = arg;
     };
 }
-
-export default Bot;

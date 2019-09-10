@@ -22,7 +22,7 @@ export interface Environment {
     db?: boolean;
     debug?: boolean;
 }
-declare enum eventType {
+export declare enum eventType {
     USER = "user",
     BOT_PRE = "botPre",
     BOT_POST = "botPost"
@@ -57,4 +57,3 @@ export declare class Bot {
     private initializeDB;
     setOnlineActivity: (arg: string) => void;
 }
-export default Bot;

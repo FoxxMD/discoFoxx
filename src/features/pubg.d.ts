@@ -9,6 +9,13 @@ export interface pubgEnv {
         ops?: string[];
     };
 }
+export interface pubgUser {
+    id: number;
+    snowflake: string;
+    discordName: string;
+    pubId: string | null;
+    pubName: string;
+}
 export declare class Pubg {
     db: Database;
     whitelist: string[];
@@ -31,4 +38,3 @@ export declare class Pubg {
     private createDB;
 }
 export declare const createPubgCommand: (pub: Pubg) => (msg: Message, args: string[]) => Promise<Function>;
-export default Pubg;
