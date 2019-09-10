@@ -65,7 +65,7 @@ You must provide an `env` object to the constructor of `Bot`. `env` must contain
 To start the bot instantiate a new Bot class and pass it the env. Then invoke `run()`
 
 ```js
-import Bot from 'disco-foxx';
+import { Bot } from 'disco-foxx';
 import env from './env.json';
 
 const myBot = new Bot({env});
