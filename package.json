@@ -1,0 +1,36 @@
+{
+  "name": "disco-foxx",
+  "version": "0.1.0",
+  "description": "A sly discord bot framework",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "tsc": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=9"
+  },
+  "keywords": ["discord","pubg","bot","szurubooru"],
+  "author": "FoxxMD",
+  "license": "MIT",
+  "peerDependencies": {
+    "discord.js": "^11.5.1"
+  },
+  "dependencies": {
+    "cli-table3": "^0.5.1",
+    "discord.js": "^11.5.1",
+    "emoji-regex": "^8.0.0",
+    "node-fetch": "^2.6.0",
+    "node-opus": "^0.3.2",
+    "pubg-typescript-api": "^1.6.0",
+    "sqlite": "^3.0.3",
+    "sqlite3": "^4.1.0",
+    "typescript": "^3.6.2",
+    "url-search-params-polyfill": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.4",
+    "@types/node-fetch": "^2.5.0"
+  }
+}
