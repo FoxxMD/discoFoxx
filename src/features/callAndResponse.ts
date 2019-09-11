@@ -9,9 +9,6 @@ export interface CARData {
     call: string[], // multiple terms can trigger a response
     response?: string[] | string, // multiple responses possible for trigger. a response is chosen at random
     react?: string[] | string,
-    // any => any string in a call array can trigger a response
-    // all => all strings in a call array must be present to trigger a response
-    // only => assumes only one string in call array. the message content must only be this string
     chance?: {
         respond?: number, // percent chance that any successful call will trigger a response
         respondOnMention?: number, // percent chance that a successful call, with a mention of the bot, will trigger a response
@@ -27,6 +24,9 @@ export interface CARData {
         },
         call?: {
             match?: string // determines what conditions need to be met for calls
+            // any => any string in a call array can trigger a response
+            // all => all strings in a call array must be present to trigger a response
+            // only => assumes only one string in call array. the message content must only be this string
         },
         message?: {
             mention?: null | boolean, // when null no mention (of bot) state required. true = mention must be present, false = must not have mention
@@ -152,7 +152,7 @@ const processCARS = async (message: Message, callAndResponses: CARData[] = [], {
 
             // most call terms are one word entries or whole phrases --
             // most of the time we want to ignore whitespace to allow variations in phrase building
-            // EX good morning gamers, goodmorning gamers => (ignore whitespace) goodmorninggamers
+            // EX good morning gamers --or-- goodmorning gamers => (ignore whitespace) goodmorninggamers
             //
             // we use preserveWhiteSpace when short calls might accidentally be parsed from adjacent words
             // EX owo => n[o wo]rries would trigger with no whitespace. preserve it to ensure owo intention

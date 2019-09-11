@@ -8,7 +8,7 @@
     "tsc": "tsc",
     "test": "echo \"Error: no test specified\"",
     "clean-dist": "node_modules/.bin/rimraf ./dist",
-    "copypackage": "cp -rf package.json dist",
+    "copypackage": "cp -rf package.json dist && cp -rf README.MD dist && cp -rf LICENSE dist",
     "dist": "cd dist && npm publish"
   },
   "engines": {

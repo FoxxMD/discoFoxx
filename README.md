@@ -69,7 +69,7 @@ import { Bot } from 'disco-foxx';
 import env from './env.json';
 
 const myBot = new Bot({env});
-myBot.run(); // bot it now running
+myBot.run(); // bot is now running
 ```
 
 ### Events

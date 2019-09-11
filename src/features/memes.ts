@@ -63,7 +63,6 @@ export const makeSzuruBot = (endpoints: any, token: string) => {
     }
 };
 
-// https://memepi.mattfoxx.me/posts?query=sort:random
 const makeApiCall = (endpoint: string, token: string) => {
     return async (url: string, {headers = {}, body = undefined, method = 'GET', ...requestedOpts} = {}) => {
         const defaultHeaders = {
