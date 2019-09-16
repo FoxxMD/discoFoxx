@@ -87,3 +87,13 @@ export const replaceWithContext = (content: string, message: Message) => {
         }
     });
 };
+
+export const getUserFromMention = (content: string, mentions: Collection<Snowflake, User>) => {
+    // The id is the first and only match found by the RegEx.
+    const matches = content.match(/^<@!?(\d+)>$/);
+
+    // If supplied variable was not a mention, matches will be null instead of an array.
+    if (!matches) return undefined;
+
+    return mentions.get(matches[1]);
+};

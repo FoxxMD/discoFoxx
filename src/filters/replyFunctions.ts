@@ -1,5 +1,6 @@
-import {randomIntFromInterval, sleep, timeStamp} from "../utilities";
+import {getUserFromMention, randomIntFromInterval, sleep, timeStamp} from "../utilities";
 import {Message} from "discord.js";
+import {CommandoClient} from "discord.js-commando";
 
 export interface replyOpts {
     delay?: {
@@ -11,7 +12,8 @@ export interface replyOpts {
     channels?: string[] | undefined,
     verbose?: boolean | undefined,
     functionNameHint?: string
-    allowBow?: boolean,
+    allowBot?: boolean,
+    allowCommand?: boolean,
 }
 
 // main wrapper for executing a function when a message happens
@@ -35,13 +37,25 @@ export const replyOnUsers = (func: Function, opts?: replyOpts) => async (message
         channels = [],
         verbose = false,
         functionNameHint = '',
-        allowBow = false,
+        allowBot = false,
+        allowCommand = false,
     } = opts || {};
 
     let verboseStrings = [timeStamp()];
     if (functionNameHint !== '') {
         verboseStrings.push(functionNameHint);
     }
+
+    if (!allowCommand && message.client instanceof CommandoClient) {
+        if (message.content.startsWith(message.client.commandPrefix)) {
+            return;
+        }
+        const mentionedUser = getUserFromMention(message.content.split(/ +/)[0], message.mentions.users);
+        if (mentionedUser !== undefined && mentionedUser.id === message.client.user.id) {
+            return;
+        }
+    }
+
     // if the userNames array is empty it essentially means "execute on any user"
     if (userNames.length > 0) {
         const messageUser = message.author.username;
@@ -54,7 +68,7 @@ export const replyOnUsers = (func: Function, opts?: replyOpts) => async (message
             // only want to log if verbose *and* we are looking for a specific user to reduce log noise
             verboseStrings.push(`Found ${foundUser}`);
         }
-    } else if(!allowBow && message.author.bot) {
+    } else if(!allowBot && message.author.bot) {
         // don't reply to bot, but only if a bot username isn't explicitly specified (above)
         return;
     }

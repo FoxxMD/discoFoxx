@@ -2,10 +2,10 @@ import { Database } from 'sqlite';
 import { Client } from "discord.js";
 import { pubgEnv } from "./features/pubg";
 export interface BotConstructorInterface {
-    dir?: string;
     client?: Client;
     env: Environment;
     name?: string;
+    db?: Database;
 }
 export interface Environment {
     discord: {
@@ -19,8 +19,8 @@ export interface Environment {
         };
     };
     pubg?: pubgEnv;
-    db?: boolean;
     debug?: boolean;
+    commandPrefix?: string;
 }
 export declare enum eventType {
     USER = "user",
@@ -33,14 +33,8 @@ export interface eventObj {
     runOnce?: boolean;
     name?: string;
 }
-export interface userEventObj {
-    func: Function;
-    runOnce?: boolean;
-    name?: string;
-}
 export declare class Bot {
     name: string;
-    dir: string;
     client: Client;
     env: Environment;
     db: Database;
@@ -54,6 +48,6 @@ export declare class Bot {
     private registerEvent;
     private handleEvent;
     run: () => Promise<void>;
-    private initializeDB;
+    protected initializeDB: () => Promise<void>;
     setOnlineActivity: (arg: string) => void;
 }

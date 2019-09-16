@@ -3,10 +3,10 @@ import {Client} from "discord.js";
 import {pubgEnv} from "./features/pubg";
 
 export interface BotConstructorInterface {
-    dir?: string;
     client?: Client;
     env: Environment;
-    name?: string
+    name?: string,
+    db?: Database
 }
 
 export interface Environment {
@@ -21,8 +21,8 @@ export interface Environment {
         }
     },
     pubg?: pubgEnv
-    db?: boolean, // if null or false sqlite will use :memory: , if true a new file with the name of the bot will be created
     debug?: boolean
+    commandPrefix?: string
 }
 
 
@@ -39,16 +39,9 @@ export interface eventObj {
     name?: string
 }
 
-export interface userEventObj {
-    func: Function,
-    runOnce?: boolean,
-    name?: string
-}
-
 export class Bot {
 
     name: string;
-    dir: string;
     client: Client;
     env: Environment;
     db!: Database;
@@ -58,7 +51,7 @@ export class Bot {
     protected onlineStatus: string = 'Bot is online';
 
     constructor(props: BotConstructorInterface) {
-        const {client, env, dir = process.cwd(), name = 'Bot'} = props;
+        const {client, env, db, name = 'Bot'} = props;
         this.name = name;
         if (client === undefined) {
             this.client = new Client({disabledEvents: ['TYPING_START']});
@@ -66,7 +59,6 @@ export class Bot {
             this.client = client;
         }
         this.env = env;
-        this.dir = dir;
 
         this.handleEvent = this.handleEvent.bind(this);
 
@@ -75,6 +67,10 @@ export class Bot {
         }
         if (this.env.discord.token === undefined) {
             throw new Error(`'discord' object in env must contains a 'token' property`);
+        }
+
+        if(db !== undefined) {
+            this.db = db;
         }
 
         this.initEvents();
@@ -159,17 +155,10 @@ export class Bot {
         await this.client.login(this.env.discord.token);
     };
 
-    private initializeDB = async (): Promise<void> => {
-        let dbFile = null;
-        if (this.env.db === undefined || this.env.db === false) {
-            dbFile = ':memory:';
-        } else if (this.env.db === true) {
-            dbFile = `${this.dir}${this.name}.db`;
-        } else {
-            dbFile = `${this.dir}${this.env.db}`;
+    protected initializeDB = async (): Promise<void> => {
+        if(this.db === undefined) {
+            this.db = await open(':memory:');
         }
-
-        this.db = await open(dbFile);
     };
 
     public setOnlineActivity = (arg: string): void => {

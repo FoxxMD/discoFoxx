@@ -31,17 +31,18 @@
     "url": "https://github.com/DiscoFoxxBot/discoFoxx.git"
   },
   "peerDependencies": {
-    "discord.js": "^11.5.1"
+    "discord.js": "^11.5.1",
+    "discord.js-commando": "^0.10.0"
   },
   "dependencies": {
     "cli-table3": "^0.5.1",
     "discord.js": "^11.5.1",
+    "discord.js-commando": "^0.10.0",
     "emoji-regex": "^8.0.0",
     "node-fetch": "^2.6.0",
     "node-opus": "^0.3.2",
     "pubg-typescript-api": "^1.6.0",
     "sqlite": "^3.0.3",
-    "sqlite3": "^4.1.0",
     "typescript": "^3.6.2",
     "url-search-params-polyfill": "^7.0.0"
   },
