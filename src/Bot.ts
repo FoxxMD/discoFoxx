@@ -46,6 +46,7 @@ export class Bot {
     env: Environment;
     db!: Database;
 
+    protected registeredEvents: string[] = [];
     protected events!: Record<string, eventObj[]>;
 
     protected onlineStatus: string = 'Bot is online';
@@ -128,7 +129,7 @@ export class Bot {
     };
 
     private registerEvent = (event: string) => {
-        if (!this.client.eventNames().includes(event)) {
+        if (!this.registeredEvents.includes(event)) {
             this.client.on(event, (...args: any) => this.handleEvent(event, ...args))
         }
     };
