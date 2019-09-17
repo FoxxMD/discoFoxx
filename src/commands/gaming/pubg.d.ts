@@ -1,8 +1,8 @@
 import { Command, CommandMessage, CommandoClient } from 'discord.js-commando';
-import { Pubgg } from "../../features/Pubgg";
+import { Pubg } from "../../features";
 export declare class PubgCommand extends Command {
-    pub: Pubgg;
-    constructor(pubInstance: Pubgg, client: CommandoClient);
+    pub: Pubg;
+    constructor(pubInstance: Pubg, client: CommandoClient);
     hasPermission(msg: CommandMessage): boolean;
     run(msg: CommandMessage, args: object): Promise<any>;
 }

@@ -20,7 +20,7 @@ export interface pubgUser {
     pubName: string,
 }
 
-export class Pubgg {
+export class Pubg {
     db: Database;
     whitelist: string[];
     blacklist: string[];
@@ -187,7 +187,7 @@ export class Pubgg {
     }
 }
 
-export const createPubgCommand = (pub: Pubgg) => {
+export const createPubgCommand = (pub: Pubg) => {
     return async (msg: Message, args: string[]): Promise<Function> => {
         if (args.length === 0) {
             // do help file
