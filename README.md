@@ -30,13 +30,13 @@ This library provides a user and developer friendly bot for [discord.js](https:/
         * Require bot mention
         * Restrict to channels
         * Flags for content parsing (preserve whitespace, preserve case, preserve url)
-    * Bang commands
-        * Sound playback in voice channel from user-defined list
-        * Post memes from [szurubooru](https://github.com/rr-/szurubooru)
-             * post random
-             * post random with specified tags
-        * [PUBG API](https://documentation.pubg.com/en/index.html) interaction
-            * Get last match stats
+* Commands using [Discordjs-commando](https://discord.js.org/#/docs/commando/v0.10.0/general/welcome)
+    * Sound playback in voice channel from user-defined list
+    * Post memes from [szurubooru](https://github.com/rr-/szurubooru)
+         * post random
+         * post random with specified tags
+    * [PUBG API](https://documentation.pubg.com/en/index.html) interaction
+        * Get last match stats
 * Extend and Develop easily
     * Public methods to access all discord client events and sequence actions with optional return early condition
     * SQLite out of the box, available as Bot property, with default `memory` or easily configured `file` options
@@ -45,7 +45,7 @@ This library provides a user and developer friendly bot for [discord.js](https:/
     * Prioritized event handle
         * Events ordered by Bot (Pre), User, Bot (Post)
         * Allows developers to write custom bots their users can continue to extend
-    * All feature functionality as modules
+    * All feature functionality as modules/classes
 
 ## Installation
 
@@ -79,7 +79,7 @@ All event listeners are inserted in the order they were created.
 foxx-disco will pass through any [discord client](https://discord.js.org/#/docs/main/stable/class/Client) event using the same event api
 
 ```js
-myBot.on('message', (messsage) => {
+myBot.on('message', (message) => {
    console.log(`Message content: ${message.content}`);
 });
 myBot.once('ready', () => {   
@@ -149,11 +149,9 @@ this.addEvent('message', newEvent);
 
 ## Features
 
-`disco-foxx/features` contains modules that can be used to add complex functionality to your bot. They are provided because the author uses them :)
+`disco-foxx/features` contains classes that can be used to add complex functionality to your bot. They are provided because the author uses them :)
 
-Some features are [Higher Order Functions](https://medium.com/javascript-scene/higher-order-functions-composing-software-5365cf2cbe99) that accept some configuration and return a new function to use with the Bot. 
-These features are prefixed with `make` EX `makeCallAndResponse()` vs `parseBang()`.
-**These features will always return a `function` if they are ready to execute a bot behavior, otherwise they return false.** This is to help the user to determine if they should return early on the executing listener.
+**Some feature methods features will return a `function` if they are ready to execute a bot behavior, otherwise they return false.** This is to help the user to determine if they should return early on the executing listener.
 
 ### Call And Response (CAR)
 
@@ -169,7 +167,7 @@ The CAR feature does this with minimal configuration while also allowing fine-tu
 
 ```js
 import { Bot } from 'disco-foxx';
-import { makeCARs } from "disco-foxx/features";
+import { CallAndResponse } from "disco-foxx/features";
 import env from './env.json';
 
 const carObjects = {
@@ -180,11 +178,11 @@ const carObjects = {
         }
     ]
 }
-const callAndResponse = makeCARs(carObjects);
+const car = new CallAndResponse(carObjects);
 
 const bot = new Bot({env});
 bot.on('message', async (message) => {
-    const result = callAndResponse(message);
+    const result = car.process(message);
     if (typeof result === 'function') { // so we know callAndResponse matched the content and is ready to send a message
         await result(message);
         return true;
@@ -195,24 +193,48 @@ bot.on('message', async (message) => {
 Refer to the `CARData` interface for a full description of how to configure a CAR object
 
 ### Other feature documentation coming soon
+
+## Commands
+
+Most features have a corresponding [commando](https://discord.js.org/#/docs/commando/v0.10.0/general/welcome) command. To use these you must initialize a `CommandBot` instead of `Bot`. Then the commands may be used as normal with a `CommandClient`.
+
+```js
+import { CommandBot } from 'disco-foxx';
+import { ClipPlayer } from 'disco-foxx/features';
+import { SoundCommand } from 'disco-foxx/commands';
+import sounds from './sounds.json';
+import env from './env.json';
+
+const bot = new CommandBot({env})
+
+bot.client.registry
+    .registerDefaults()
+    .registerGroups([
+        ['audio', 'An Audio Command Group']
+    ]);
+
+const player = new ClipPlayer(sounds, path.join(__dirname, 'sounds'));
+const soundCmd = new SoundCommand(player, bot.client);
+
+bot.client.registry.registerCommands([soundCmd]);
+
+bot.run();
+```
     
 ## 3rd Party API Setup
 
 #### Szurubooru
 
-Add endpoints (front and backend) to `env.szuzubooru.endpoints`
-
 Follow the instructions for [Authentication](https://github.com/rr-/szurubooru/blob/master/doc/API.md#authentication)
 
 * Include [Basic Auth](https://en.wikipedia.org/wiki/Basic_access_authentication) headers to retrieve a [user token](https://github.com/rr-/szurubooru/blob/master/doc/API.md#creating-user-token)
 * Create an auth token by base64 encoding this value: `userName:userToken`
-* Add the auth token to `env.szuzubooru.token`
+* Instantiate a `Szurubooru` object from `disco-foxx/features` and provide with valid constructor arguments (endpoints and token). See `szuruEndpoints` interface.
 
 #### PUBG
 
-* Register a new app on the [pubg dev api site](https://developer.playbattlegrounds.com/apps/new?locale=en). Copy the token to `env.pubg.token`
-* Make sure `db` is specified in `env` so user associations are persisted
-* Setup `acl` in the pub portion of `env.pubg.acl` if you want to restrict usage to certain roles, otherwise all users can use pubg commands
+* Register a new app on the [pubg dev api site](https://developer.playbattlegrounds.com/apps/new?locale=en).
+* Instantiate a new `Pubg` object from `disco-foxx/features`. See `pubgEnv` interface.
 
 ## Developing
 
