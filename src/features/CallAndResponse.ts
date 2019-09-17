@@ -35,7 +35,7 @@ export interface CARData {
     channels?: string[]  // restrict success condition to certain channels. empty means all channels
 }
 
-export class CallAndResponses {
+export class CallAndResponse {
     carData: CARData[];
     snowflake?: string;
     verbose: boolean;

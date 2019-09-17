@@ -41,11 +41,11 @@ export class MemeCommand extends Command {
         this.memeApi = api;
     }
 
-    async run(message: CommandMessage, args: string[]) {
+    async run(message: CommandMessage, args: object) {
         if (args === undefined) {
             return false;
         }
-        const func = args.length === 0 ? await this.memeApi.randomMeme() : await this.memeApi.taggedMeme(args);
+        const func = args.tags === 0 ? await this.memeApi.randomMeme() : await this.memeApi.taggedMeme(args.tags);
         // @ts-ignore
         return func(message);
     }
