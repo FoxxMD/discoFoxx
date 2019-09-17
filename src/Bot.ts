@@ -1,6 +1,7 @@
 import {open, Database} from 'sqlite';
 import {Client} from "discord.js";
 import {pubgEnv} from "./features/pubg";
+import {szuruEnv} from "./features/Szurubooru";
 
 export interface BotConstructorInterface {
     client?: Client;
@@ -13,13 +14,7 @@ export interface Environment {
     discord: {
         token: string
     },
-    szurubooru?: {
-        token: string,
-        endpoints: {
-            frontend: string,
-            backend: string
-        }
-    },
+    szurubooru?: szuruEnv,
     pubg?: pubgEnv
     debug?: boolean
     commandPrefix?: string
@@ -49,8 +44,6 @@ export class Bot {
     protected registeredEvents: string[] = [];
     protected events!: Record<string, eventObj[]>;
 
-    protected onlineStatus: string = 'Bot is online';
-
     constructor(props: BotConstructorInterface) {
         const {client, env, db, name = 'Bot'} = props;
         this.name = name;
@@ -70,7 +63,7 @@ export class Bot {
             throw new Error(`'discord' object in env must contains a 'token' property`);
         }
 
-        if(db !== undefined) {
+        if (db !== undefined) {
             this.db = db;
         }
 
@@ -91,7 +84,6 @@ export class Bot {
                     type: eventType.BOT_PRE,
                     func: async () => {
                         console.log(`Bot has started, with ${this.client.users.size} users, in ${this.client.channels.size} channels of ${this.client.guilds.size} guilds.`);
-                        await this.client.user.setActivity(this.onlineStatus);
                     }
 
                 }
@@ -157,12 +149,8 @@ export class Bot {
     };
 
     protected initializeDB = async (): Promise<void> => {
-        if(this.db === undefined) {
+        if (this.db === undefined) {
             this.db = await open(':memory:');
         }
-    };
-
-    public setOnlineActivity = (arg: string): void => {
-        this.onlineStatus = arg;
     };
 }

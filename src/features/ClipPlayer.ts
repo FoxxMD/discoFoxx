@@ -1,5 +1,4 @@
-// HOC function to take generic sound play function and provide it with specific config and dir for bot
-import {sleep, timeStamp} from "../utilities";
+import {timeStamp} from "../utilities";
 import {Message} from "discord.js";
 
 export interface SoundDesc {
@@ -8,12 +7,31 @@ export interface SoundDesc {
     description: string
 }
 
-export const makePlaySound = (config: any, soundDir: string) => {
+export class ClipPlayer {
+    sounds: SoundDesc[];
+    soundDir: string;
+    verbose: boolean;
 
-    const {sounds, verbose = false}: { sounds: SoundDesc[], verbose: boolean } = config;
+    constructor(sounds: SoundDesc[], soundDir: string, verbose = false) {
+        this.sounds = sounds;
+        this.soundDir = soundDir;
+        this.verbose = verbose;
+    }
 
-    // generic function for playing sound
-    return async (msg: Message, soundName: string) => {
+    list = () => {
+        return this.sounds.reduce((acc: string, sound: SoundDesc) => {
+            const {name, description} = sound;
+            // concat each sound to a string reduction using newline. also join multiple sound names with 'or'
+            return acc.concat(`\n${name.join(' or ')} => ${description}`);
+            // start reduction with header
+        }, 'Sound Name => Description\n');
+    };
+
+    hasSound = (soundName: string) => {
+        return this.sounds.some((x) => x.name.includes(soundName));
+    };
+
+    play = (soundName: string, msg: Message) => {
         // destructure message to get voiceChannel of the author who sent the message
         const {
             member
@@ -23,7 +41,7 @@ export const makePlaySound = (config: any, soundDir: string) => {
 
         if (sanitizedSoundName === 'list') {
             // if sound command argument is list we just want to text reply with available sounds
-            const list = sounds.reduce((acc: string, sound: SoundDesc) => {
+            const list = this.sounds.reduce((acc: string, sound: SoundDesc) => {
                 const {name, description} = sound;
                 // concat each sound to a string reduction using newline. also join multiple sound names with 'or'
                 return acc.concat(`\n${name.join(' or ')} => ${description}`);
@@ -33,17 +51,17 @@ export const makePlaySound = (config: any, soundDir: string) => {
         }
 
         // check for an existing sound by comparing sent name to what we have in config
-        const foundSound = sounds.find(x => x.name.map(y => y.toLocaleLowerCase()).includes(sanitizedSoundName));
+        const foundSound = this.sounds.find(x => x.name.map(y => y.toLocaleLowerCase()).includes(sanitizedSoundName));
 
         if (foundSound === undefined) {
-            return (message: Message) => message.channel.send('That sound does not exist');
+            throw new Error('That sound does not exist');
         }
 
         if (member === undefined || member.voiceChannel === undefined) {
-            return (message: Message) => message.channel.send('You need to be in a voice channel first!');
+            throw new Error('You need to be in a voice channel first!');
         }
 
-        if (verbose) {
+        if (this.verbose) {
             console.log(`[${timeStamp()}] Playing sound ${foundSound.file}`);
         }
 
@@ -52,7 +70,7 @@ export const makePlaySound = (config: any, soundDir: string) => {
             const vc = message.member.voiceChannel;
             try {
                 const connection = await vc.join();
-                const dispatcher = connection.playFile(`${soundDir}/${foundSound.file}`);
+                const dispatcher = connection.playFile(`${this.soundDir}/${foundSound.file}`);
                 dispatcher.on('end', end => {
                     // its cutting short for some reason, use a timeout to make sure everything is played
                     setTimeout(() => {
@@ -63,9 +81,10 @@ export const makePlaySound = (config: any, soundDir: string) => {
                 // make sure we leave the voice channel if any error occurs so the bot isn't just stuck in a channel
                 console.log(err);
                 vc.leave();
+                await message.channel.send('Oops 😳, encountered an error. Tell someone import to check the logs.');
             }
         }
-    };
-};
+    }
+}
 
-export default makePlaySound;
+export default ClipPlayer;

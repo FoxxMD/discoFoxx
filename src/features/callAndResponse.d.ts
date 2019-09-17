@@ -26,4 +26,10 @@ export interface CARData {
     };
     channels?: string[];
 }
-export declare const makeCARs: (config: any, snowflake?: string) => (msg: Message) => Promise<false | ((message: Message) => void)>;
+export declare class CallAndResponse {
+    carData: CARData[];
+    snowflake?: string;
+    verbose: boolean;
+    constructor(carData: CARData[], snowflake?: string, verbose?: boolean);
+    process: (message: Message) => false | ((message: Message) => void);
+}

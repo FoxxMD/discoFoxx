@@ -1,6 +1,7 @@
 import { Database } from 'sqlite';
 import { Client } from "discord.js";
 import { pubgEnv } from "./features/pubg";
+import { szuruEnv } from "./features/Szurubooru";
 export interface BotConstructorInterface {
     client?: Client;
     env: Environment;
@@ -11,13 +12,7 @@ export interface Environment {
     discord: {
         token: string;
     };
-    szurubooru?: {
-        token: string;
-        endpoints: {
-            frontend: string;
-            backend: string;
-        };
-    };
+    szurubooru?: szuruEnv;
     pubg?: pubgEnv;
     debug?: boolean;
     commandPrefix?: string;
@@ -38,8 +33,8 @@ export declare class Bot {
     client: Client;
     env: Environment;
     db: Database;
+    protected registeredEvents: string[];
     protected events: Record<string, eventObj[]>;
-    protected onlineStatus: string;
     constructor(props: BotConstructorInterface);
     private initEvents;
     on: (event: string, func: Function, name?: string) => void;
@@ -49,5 +44,4 @@ export declare class Bot {
     private handleEvent;
     run: () => Promise<void>;
     protected initializeDB: () => Promise<void>;
-    setOnlineActivity: (arg: string) => void;
 }
