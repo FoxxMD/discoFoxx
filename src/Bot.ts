@@ -1,6 +1,6 @@
 import {open, Database} from 'sqlite';
 import {Client} from "discord.js";
-import {pubgEnv} from "./features/pubg";
+import {pubgEnv} from "./features/Pubgg";
 import {szuruEnv} from "./features/Szurubooru";
 
 export interface BotConstructorInterface {

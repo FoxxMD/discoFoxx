@@ -1,12 +1,12 @@
 import {Command, CommandMessage, CommandoClient} from 'discord.js-commando';
-import {Pubg} from "../../features/Pubg";
+import {Pubgg} from "../../features";
 import {Guild, GuildMember, Message, User} from "discord.js";
 
 export class PubgCommand extends Command {
 
-    pub: Pubg;
+    pub: Pubgg;
 
-    constructor(pubInstance: Pubg, client: CommandoClient) {
+    constructor(pubInstance: Pubgg, client: CommandoClient) {
         super(client, {
             name: 'pubg',
             group: 'gaming',
