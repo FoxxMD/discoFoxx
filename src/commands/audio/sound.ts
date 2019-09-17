@@ -10,22 +10,22 @@ export class SoundCommand extends Command {
             name: 'sound',
             group: 'audio',
             memberName: 'sound',
+            guildOnly: true,
             description: 'Play a sound in the current voice channel',
             details: 'Play a sound in the current voice channel. \n Use `list` to see available sounds',
             examples: ['!sound rickroll'],
             args: [
                 {
-                    key: 'sound',
+                    key: 'name',
                     type: 'string',
                     prompt: 'Specify the sound to play',
-                    validate: (val: string, msg: CommandMessage) => {
+                    validate: (val: any, msg: CommandMessage, arg: any) => {
                         if (val === 'list') {
                             return true;
                         } else if (!this.clipPlayer.hasSound(val)) {
                             return 'Specified sounds does not exist';
-                        } else if (msg.member === undefined || msg.member.voiceChannel === undefined) {
-                            return 'Must be in a voice channel to do this';
                         }
+                        return true;
                     }
                 }
             ]
@@ -33,12 +33,21 @@ export class SoundCommand extends Command {
         this.clipPlayer = player;
     }
 
-    async run(message: CommandMessage, arg: string) {
-        if (arg === 'list') {
-            return message.say(this.clipPlayer.list());
+    hasPermission(cmdMsg: CommandMessage): boolean | string {
+        if (cmdMsg.message.member.voiceChannel === undefined) {
+            return 'Must be in a voice channel to do this';
+        }
+        return true;
+    }
+
+    async run(cmdMsg: CommandMessage, args: object) {
+        const {name} = args as { name: string };
+        const {message} = cmdMsg;
+        if (name === 'list') {
+            return message.channel.send(this.clipPlayer.list());
         }
         // @ts-ignore
-        const readyFunc = await this.clipPlayer.play(arg, message);
+        const readyFunc = await this.clipPlayer.play(name, message);
         return readyFunc(message);
     }
 }

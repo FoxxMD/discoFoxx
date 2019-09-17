@@ -42,11 +42,12 @@ export class Bot {
     db!: Database;
 
     protected registeredEvents: string[] = [];
-    protected events!: Record<string, eventObj[]>;
+    protected rEvents!: Record<string, eventObj[]>;
 
     constructor(props: BotConstructorInterface) {
         const {client, env, db, name = 'Bot'} = props;
         this.name = name;
+        this.rEvents = {};
         if (client === undefined) {
             this.client = new Client({disabledEvents: ['TYPING_START']});
         } else {
@@ -66,31 +67,25 @@ export class Bot {
         if (db !== undefined) {
             this.db = db;
         }
-
-        this.initEvents();
     }
 
     private initEvents = () => {
-        this.events = {
-            ready: [
-                {
-                    type: eventType.BOT_PRE,
-                    runOnce: true,
-                    func: async () => {
-                        await this.initializeDB();
-                    }
-                },
-                {
-                    type: eventType.BOT_PRE,
-                    func: async () => {
-                        console.log(`Bot has started, with ${this.client.users.size} users, in ${this.client.channels.size} channels of ${this.client.guilds.size} guilds.`);
-                    }
+        this.addEvent('ready', {
+            type: eventType.BOT_PRE,
+            name: 'initDB',
+            runOnce: true,
+            func: async () => {
+                await this.initializeDB();
+            }
+        });
+        this.addEvent('ready', {
+            type: eventType.BOT_PRE,
+            name: 'Output Bot Ready',
+            func: async () => {
+                console.log(`Bot has started, with ${this.client.users.size} users, in ${this.client.channels.size} channels of ${this.client.guilds.size} guilds.`);
+            }
 
-                }
-            ],
-        };
-
-        this.registerEvent('ready');
+        });
     };
 
     public on = (event: string, func: Function, name?: string) => this.addEvent(event, {
@@ -110,27 +105,30 @@ export class Bot {
     protected addEvent = (event: string, newEvent: eventObj) => {
         this.registerEvent(event);
 
-        if (this.events[event] === undefined) {
-            this.events[event] = [newEvent];
+        if (this.rEvents[event] === undefined) {
+            this.rEvents[event] = [newEvent];
         } else {
-            const partitionedEvents = this.events[event].concat(newEvent).reduce((acc: any, curr: eventObj) => {
+            const partitionedEvents = this.rEvents[event].concat(newEvent).reduce((acc: any, curr: eventObj) => {
                 return {...acc, [curr.type]: acc[curr.type].concat(curr)};
             }, {[eventType.BOT_PRE]: [], [eventType.BOT_POST]: [], [eventType.USER]: []});
-            this.events[event] = [...partitionedEvents[eventType.BOT_PRE], ...partitionedEvents[eventType.USER], ...partitionedEvents[eventType.BOT_POST]];
+            this.rEvents[event] = [...partitionedEvents[eventType.BOT_PRE], ...partitionedEvents[eventType.USER], ...partitionedEvents[eventType.BOT_POST]];
         }
     };
 
     private registerEvent = (event: string) => {
         if (!this.registeredEvents.includes(event)) {
-            this.client.on(event, (...args: any) => this.handleEvent(event, ...args))
+            this.client.on(event, async (...args: any) => {
+                await this.handleEvent(event, ...args);
+            });
+            this.registeredEvents.push(event);
         }
     };
 
     private handleEvent = async (eventName: string, ...args: any) => {
-        if (this.events[eventName] !== undefined) {
+        if (this.rEvents[eventName] !== undefined) {
             let runOnceIndexes: number[] = [];
             const index = 0;
-            for (const eventObj of this.events[eventName]) {
+            for (const eventObj of this.rEvents[eventName]) {
                 if (eventObj.runOnce === true) {
                     runOnceIndexes.push(index);
                 }
@@ -139,12 +137,13 @@ export class Bot {
                 }
             }
             if (runOnceIndexes.length > 1) {
-                this.events[eventName] = this.events[eventName].filter((x, index) => !runOnceIndexes.includes(index));
+                this.rEvents[eventName] = this.rEvents[eventName].filter((x, index) => !runOnceIndexes.includes(index));
             }
         }
     };
 
     public run = async () => {
+        this.initEvents();
         await this.client.login(this.env.discord.token);
     };
 

@@ -11,6 +11,7 @@ export class PubgCommand extends Command {
             name: 'pubg',
             group: 'gaming',
             memberName: 'pubg',
+            guildOnly: true,
             description: 'Get PUBG stats',
             examples: ['!pubg lastMatch [@user]'],
             args: [
@@ -24,7 +25,7 @@ export class PubgCommand extends Command {
                 {
                     key: 'value',
                     type: 'string',
-                    prompt: 'What value for this action?'
+                    prompt: 'What value for this action?',
                 },
                 // {
                 //     key: 'user',
@@ -38,12 +39,12 @@ export class PubgCommand extends Command {
     }
 
     hasPermission(msg: CommandMessage) {
-        return this.pub.hasInteractionPermissions(msg.member);
+        return this.pub.hasInteractionPermissions(msg.message.member);
     }
 
-    async run(msg: CommandMessage, args: object) {
-        //const {action, value, user: actionedUser} = args as { action: string, value: string, user: GuildMember };
+    async run(cmdMsg: CommandMessage, args: object) {
         const {action, value} = args as { action: string, value: string };
+        const {message: msg} = cmdMsg;
         const actionedUser = msg.member;
         switch (action) {
             case 'username':
@@ -66,8 +67,14 @@ export class PubgCommand extends Command {
                 await this.pub.removePlayer(actionedUser);
                 return msg.channel.send('Removed player from PUBG functions');
             case 'match':
-                const func = await this.pub.displayGroupMatch(actionedUser);
-                return func(msg);
+                switch(value) {
+                    case 'last':
+                        const func = await this.pub.displayGroupMatch(actionedUser);
+                        return func(msg);
+                    default:
+                        return msg.channel.send('Only last match is implemented right now!');
+                }
+
             default:
                 return msg.channel.send('I don\'t know that PUBG command yet! :^(');
         }
