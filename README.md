@@ -220,6 +220,10 @@ bot.client.registry.registerCommands([soundCmd]);
 
 bot.run();
 ```
+
+## Example
+
+See `example` folder for a kitchen sink reference of how to use this bot
     
 ## 3rd Party API Setup
 
