@@ -63,7 +63,8 @@
   },
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "example"
   ],
   "include": [
     "./src/**/*.ts"

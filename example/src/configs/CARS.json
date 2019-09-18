@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "call": [
+        "discord",
+        "javascript"
+      ],
+      "response": [
+        "JS is neat",
+        "Fan of the language"
+      ],
+      "react": [
+        "\uD83D\uDE29",
+        "\uD83C\uDF05"
+      ],
+      "chance": {
+        "respond": 70,
+        "multipleReact": 20
+      }
+    }
+  ]
+}
