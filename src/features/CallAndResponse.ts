@@ -1,29 +1,37 @@
 import er from 'emoji-regex';
 import {normalizeStr, randomIntFromInterval, replaceWithContext, timeStamp} from "../utilities";
-import {DMChannel, Emoji, Message, User} from "discord.js";
+import {DMChannel, Emoji, GuildChannel, Message, Permissions, User} from "discord.js";
+import {IChannels} from "../common/interfaces";
 
 const emojiRegex = er();
+
+export interface CARConfig {
+    channels?: IChannels,
+    data: CARData[]
+}
+
+export interface ChanceConfig {
+    respond?: number, // percent chance to send a message. Default 50%
+    respondOnMention?: number, // percent chance to send a message when bot is mentioned. Default 100%
+    react?: number, // chance to react. Default 50%
+    reactOnMention?: number, // chance to react when bot is mentioned. Default 100%
+    multipleReact?: number, // chance we can react more than once. Default 0%
+}
 
 export interface CARData {
     nickname?: string, // used for referencing other CARS data
     call: string[], // multiple terms can trigger a response
     response?: string[] | string, // multiple responses possible for trigger. a response is chosen at random
     react?: string[] | string,
-    chance?: {
-        respond?: number, // percent chance that any successful call will trigger a response
-        respondOnMention?: number, // percent chance that a successful call, with a mention of the bot, will trigger a response
-        react?: number, // chance we will react
-        reactOnMention?: number,
-        multipleReact?: number, // chance we can react more than once
-        channels?: string[], // percent chances per channel
-    },
+    chance?: ChanceConfig,
+    channelChance?: Record<string, ChanceConfig>,
     options?: {
         parsing?: { // modifiers for parsing message content and calls
             preserveWhiteSpace?: boolean,
             preserveUrl?: boolean,
         },
         call?: {
-            match?: string // determines what conditions need to be met for calls
+            match?: ('any' | 'all' | 'only') // determines what conditions need to be met for calls
             // any => any string in a call array can trigger a response
             // all => all strings in a call array must be present to trigger a response
             // only => assumes only one string in call array. the message content must only be this string
@@ -32,18 +40,24 @@ export interface CARData {
             mention?: null | boolean, // when null no mention (of bot) state required. true = mention must be present, false = must not have mention
         }
     },
-    channels?: string[]  // restrict success condition to certain channels. empty means all channels
+    channels?: IChannels  // specify channels to whitelist or blacklist
 }
 
 export class CallAndResponse {
     carData: CARData[];
-    snowflake?: string;
+    channelDefaults: IChannels;
+    snowflake: string;
+    bot: User;
     verbose: boolean;
 
-    constructor(carData: CARData[], snowflake?: string, verbose: boolean = false) {
-        this.carData = carData;
-        this.snowflake = snowflake;
+    constructor(config: CARConfig, bot: User, verbose: boolean = false) {
+        const {channels = {}, data} = config;
+
+        this.carData = data;
+        this.bot = bot;
+        this.snowflake = this.bot.id;
         this.verbose = verbose;
+        this.channelDefaults = channels;
     }
 
     process = (message: Message) => {
@@ -67,6 +81,23 @@ export class CallAndResponse {
         let responseContent: string[] = [];
         let reactions: (string | Emoji)[] = [];
         let warn = false;
+        let canRespond = true;
+        let canReact = true;
+
+        if (channel instanceof GuildChannel) {
+            const permissions = channel.memberPermissions(this.bot);
+            if (permissions === null) {
+                canRespond = false;
+                canReact = false;
+            } else {
+                canRespond = permissions.has(Permissions.FLAGS.SEND_MESSAGES as number);
+                canReact = permissions.has(Permissions.FLAGS.ADD_REACTIONS as number);
+            }
+        }
+
+        if (!canRespond && !canReact) {
+            return false;
+        }
 
         // look through each CAR object
         // if a CAR object does not meet success conditions we 'continue' to iterate to the next CAR object
@@ -80,14 +111,8 @@ export class CallAndResponse {
                 call = [],
                 response = [],
                 react = [],
-                chance: {
-                    respond: normalChance = 50,
-                    respondOnMention: mentionChance = 100,
-                    react: reactChance = 50,
-                    reactOnMention = 100,
-                    multipleReact: multipleReactChance = 0,
-                    channels: channelChances = [],
-                } = {},
+                chance = {},
+                channelChance = {},
                 options: {
                     parsing: {
                         preserveWhiteSpace = false,
@@ -100,16 +125,23 @@ export class CallAndResponse {
                         mention: mentionPresent = null,
                     } = {}
                 } = {},
-                channels = []
+                channels = this.channelDefaults
             }: CARData = cr;
 
             let matchString = [];
 
             // check channel restrictions
-            if (channels.length > 0 && channelName !== undefined) {
-                const channel = normalizeStr(channelName);
-                if (!channels.map(x => x.toLowerCase()).includes(channel)) {
-                    continue;
+            const channel = channelName !== undefined ? normalizeStr(channelName) : undefined;
+            if (channel !== undefined) {
+                const {include, exclude} = channels;
+                if (include !== undefined) {
+                    if (include.length !== 0 && !include.map(x => x.toLowerCase()).includes(channel)) {
+                        continue;
+                    }
+                } else if (exclude !== undefined) {
+                    if (exclude.length === 0 || exclude.map(x => x.toLowerCase()).includes(channel)) {
+                        continue;
+                    }
                 }
             }
 
@@ -165,8 +197,23 @@ export class CallAndResponse {
 
             matchString.push(` -> Matched {${foundCall}}`);
 
+            // determine which chances to use
+            let chanceToUse: ChanceConfig = chance;
+
+            if (channel !== undefined && channelChance[channel] !== undefined) {
+                chanceToUse = channelChance[channel];
+            }
+
+            const {
+                respond: normalChance = 50,
+                respondOnMention: mentionChance = 100,
+                react: reactChance = 50,
+                reactOnMention = 100,
+                multipleReact: multipleReactChance = 0,
+            } = chanceToUse;
+
             // react ops
-            if (react.length > 0) {
+            if (react.length > 0 && canReact) {
                 // should we react?
                 const chanceOfReact = mentioned ? reactOnMention : reactChance;
                 if (Math.random() - 0.01 > chanceOfReact) {
@@ -204,7 +251,7 @@ export class CallAndResponse {
             }
 
             // respond ops
-            if (response.length > 0) {
+            if (response.length > 0 && canRespond) {
                 // should we respond
                 const respondChance = mentioned ? mentionChance : normalChance;
                 if ((Math.random() - 0.01 > respondChance * 0.01)) {
