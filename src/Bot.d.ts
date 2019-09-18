@@ -1,7 +1,6 @@
 import { Database } from 'sqlite';
 import { Client } from "discord.js";
-import { pubgEnv } from "./features/pubg";
-import { szuruEnv } from "./features/Szurubooru";
+import { szuruEnv, pubgEnv } from "./features";
 export interface BotConstructorInterface {
     client?: Client;
     env: Environment;
@@ -34,7 +33,7 @@ export declare class Bot {
     env: Environment;
     db: Database;
     protected registeredEvents: string[];
-    protected events: Record<string, eventObj[]>;
+    protected rEvents: Record<string, eventObj[]>;
     constructor(props: BotConstructorInterface);
     private initEvents;
     on: (event: string, func: Function, name?: string) => void;

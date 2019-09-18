@@ -11,6 +11,6 @@ export declare class ClipPlayer {
     constructor(sounds: SoundDesc[], soundDir: string, verbose?: boolean);
     list: () => string;
     hasSound: (soundName: string) => boolean;
-    play: (soundName: string, msg: Message) => ((message: Message) => Promise<Message | Message[]>) | ((message: Message) => Promise<void>);
+    play: (soundName: string, msg: Message) => Function;
 }
 export default ClipPlayer;
