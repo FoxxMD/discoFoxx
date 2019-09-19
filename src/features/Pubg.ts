@@ -16,8 +16,12 @@ export interface pubgUser {
     id: number,
     snowflake: string,
     discordName: string,
-    pubId: string | null,
+    pubId: string,
     pubName: string,
+}
+
+export class PubError extends Error {
+
 }
 
 export class Pubg {
@@ -47,33 +51,21 @@ export class Pubg {
         const existingUser: (pubgUser | undefined) = await this.db.get('SELECT * from main.pubgUsers where snowflake = ?', user.id);
         const existingName: (pubgUser | undefined) = await this.db.get('SELECT * from main.pubgUsers where pubName = ?', name);
 
-        if (existingName !== undefined) {
-            if (existingName.snowflake !== user.id) {
-                // then we need to delete this user
-                await this.db.run('DELETE FROM main.pubgUsers where id = ? ', existingName.id);
-            }
+        const player = await this.getPubgPlayerByName(name);
 
-            if (existingUser !== undefined) {
-                await this.db.run('UPDATE main.pubgUsers SET pubName = ?, pubId = ? where id = ?', [name, existingName.pubId, existingUser.id]);
-                // if(existingUser.snowflake !== user.id && !user.roles.some(x => this.ops.includes(x.name.toLowerCase()))) {
-                //     return (m: Message) => m.channel.send('You do not have permission to change the user associated with an existing pubg handle');
-                // }
-            } else {
-                await this.db.run('INSERT INTO main.pubgUsers (snowflake, discordName, pubName, pubId) VALUES(?,?,?,?)', [user.id, user.displayName, name, existingName.pubId]);
-            }
-        } else if (existingUser !== undefined) {
-            await this.db.run('UPDATE main.pubgUsers SET pubName = ?  where id = ?', [name, existingUser.id]);
-        } else {
-            await this.db.run('INSERT INTO main.pubgUsers (snowflake, discordName, pubName) VALUES(?,?,?)', [user.id, user.displayName, name]);
+        // if name is already in DB but not for the user we are setting for it for then we need to delete it
+        // this assumes we've already done a permissions check in the command to prevent regular users from mucking up everyone else's names
+        if (existingName !== undefined && existingName.snowflake !== user.id) {
+            await this.db.run('DELETE FROM main.pubgUsers where id = ? ', existingName.id);
         }
-    }
 
-    async removePlayer(user: GuildMember): Promise<void> {
-        await this.db.run('DELETE FROM pubgUsers where snowflake = ?', user.id);
-    }
-
-    async discordUserExists(user: GuildMember): Promise<boolean> {
-        return await this.db.get('SELECT * FROM main.pubgUsers where snowflake = ?', user.id) !== undefined;
+        // if the user already exists in the DB then we just update their pubname and pub id
+        if (existingUser !== undefined) {
+            await this.db.run('UPDATE main.pubgUsers SET pubName = ?, pubId = ? where id = ?', [name, player.id, existingUser.id]);
+        } else {
+            // otherwise we create a new entry for the user
+            await this.db.run('INSERT INTO main.pubgUsers (snowflake, discordName, pubName, pubId) VALUES(?,?,?,?)', [user.id, user.displayName, name, player.id]);
+        }
     }
 
     async pubNameExists(name: string): Promise<[boolean, string?]> {
@@ -97,36 +89,51 @@ export class Pubg {
         return user.roles.some(x => this.ops.includes(x.name.toLocaleLowerCase()))
     }
 
-    private async populatePubgId(pubUser: pubgUser): Promise<string> {
-        const players = await Player.filterByName(this.api, [pubUser.pubName]);
-        if (players.length === 0) {
-            throw new Error(`No player found with the name ${pubUser.pubName}`);
+    private async getPubgPlayerByName(name: string): Promise<Player> {
+        try {
+            const players = await Player.filterByName(this.api, [name]);
+            return players[0];
+        } catch (e) {
+            if ('response' in e && e.response.status === 404) {
+                throw new PubError(`No PUBG player found with the name ${name}`);
+            }
+            throw e;
         }
-        const player = players[0];
-        await this.db.run('UPDATE main.pubgUsers set pubId = ? where id = ?', [player.id, pubUser.id]);
-        return player.id;
     }
 
-    private async getPubgUserFromMember(user: GuildMember): Promise<(pubgUser | undefined)> {
-        return this.db.get('SELECT * from main.pubgUsers where snowflake = ?', [user.id]);
-    }
-
-    private async getMatchFromPubgUser(pubUser: pubgUser) {
-        let id = pubUser.pubId;
-        if (id === null) {
-            id = await this.populatePubgId(pubUser);
-        }
-        const player = await Player.get(this.api, id);
-        return await Match.get(this.api, player.matchIds[0]);
-    }
-
-    async displayGroupMatch(user: GuildMember): Promise<Function> {
-        const pubUser = await this.getPubgUserFromMember(user);
+    private async getPubgUserFromMember(user: GuildMember): Promise<pubgUser> {
+        const pubUser = await this.db.get('SELECT * from main.pubgUsers where snowflake = ?', [user.id]);
         if (pubUser === undefined) {
-            return (m: Message) => m.channel.send(`PUBG Username not set for ${user.user.username}, see \`!pubg help\` for how to set it.`);
+            throw new PubError(`PUBG Username not set for ${user.user.username}, see \`!pub-setuser help\``);
         }
-        const match = await this.getMatchFromPubgUser(pubUser);
-        const roster = match.rosters.find(x => x.participants.some(y => y.playerId === pubUser.pubId)) as Roster;
+        return pubUser;
+    }
+
+    private async getMatch(user: (GuildMember | pubgUser), matchVal?: string) {
+        let matchId = matchVal;
+        try {
+            if (matchId === undefined) {
+                const pubUser = 'pubId' in user ? user : await this.getPubgUserFromMember(user);
+                const player = await Player.get(this.api, pubUser.pubId);
+                matchId = player.matchIds[0];
+            }
+            return await Match.get(this.api, matchId);
+        } catch (e) {
+            if ('response' in e && e.response.status === 404) {
+                throw new PubError(`The specified Match ${matchId} was not found`);
+            }
+            throw e;
+        }
+
+    }
+
+    async displayGroupMatch(user: GuildMember, matchId?: string): Promise<Function> {
+        const pubUser = await this.getPubgUserFromMember(user);
+        const match = await this.getMatch(pubUser, matchId);
+        const roster = match.rosters.find(x => x.participants.some(y => y.playerId === pubUser.pubId));
+        if (roster === undefined) {
+            throw new PubError(`${user.user.username} was not found in the Match ${match.id}`);
+        }
         const matchSummary = this.matchSummary(match);
         const rosterSummary = this.rosterSummary(roster);
 
@@ -186,53 +193,3 @@ export class Pubg {
         );`);
     }
 }
-
-export const createPubgCommand = (pub: Pubg) => {
-    return async (msg: Message, args: string[]): Promise<Function> => {
-        if (args.length === 0) {
-            // do help file
-            return (m: Message) => m.channel.send('Must provide a command! Use `!pubg help` to see what I can do.');
-        }
-        const [command, ...otherArgs] = args;
-        let actionedUser = msg.mentions.users.size > 0 ? msg.mentions.members.first() : msg.member;
-        switch (command) {
-            case 'username':
-
-                const [nick] = otherArgs;
-
-                if (nick === undefined || nick === '') {
-                    return (m: Message) => m.channel.send('Must provide a valid PUBG username!');
-                }
-
-                if (!pub.hasInteractionPermissions(msg.member)) {
-                    return (m: Message) => m.channel.send('You do not have permission to do that.');
-                }
-
-                const [exists, name] = await pub.pubNameExists(nick);
-
-                if (exists && !pub.hasOpsPermissions(msg.member)) {
-                    return (m: Message) => m.channel.send(`User ${name} has already claimed that username and you do not have permission to override`);
-                }
-
-                await pub.setPlayer(actionedUser, nick);
-                return (m: Message) => m.channel.send('PUBG Username set');
-            case 'remove':
-
-                if (!pub.hasInteractionPermissions(msg.member)) {
-                    return (m: Message) => m.channel.send('You do not have permission to do that.');
-                }
-
-                await pub.removePlayer(actionedUser);
-                return (m: Message) => m.channel.send('Removed player from PUBG functions');
-            case 'match':
-                const [displayType = 'me'] = otherArgs;
-                if (displayType === 'group') {
-                    return pub.displayGroupMatch(actionedUser);
-                } else {
-                    return (m: Message) => m.channel.send('Only group display type is implemented right now!');
-                }
-            default:
-                return (m: Message) => m.channel.send('I don\'t know that PUBG command yet! :^(');
-        }
-    }
-};

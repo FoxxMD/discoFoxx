@@ -1,1 +1,1 @@
-export * from './pubg';
+export * from './pubg/index';
