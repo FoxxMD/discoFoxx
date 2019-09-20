@@ -223,7 +223,7 @@ bot.run();
 
 ## Example
 
-See `example` folder for a kitchen sink reference of how to use this bot
+See [example](https://github.com/FoxxMD/discoFoxx/tree/master/example) folder for a kitchen sink reference of how to use this bot
     
 ## 3rd Party API Setup
 
