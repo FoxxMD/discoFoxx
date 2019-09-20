@@ -1,6 +1,5 @@
 import carData from "./configs/CARS.json";
-// uncomment if sounds are present
-//import sounds from "./configs/sounds.json";
+import sounds from "./configs/sounds.json";
 import env from '../env.json';
 import {Message} from "discord.js";
 import path from 'path';
@@ -9,7 +8,7 @@ import HelloCommand from './commands/fun/hello';
 import {CallAndResponse, Pubg, ClipPlayer, Szurubooru} from "../../src/features";
 import {BotConstructorInterface, CommandoBot} from "../../src";
 import {replyOnUsers} from "../../src/filters";
-import {PubgCommand, MemeCommand, SoundCommand} from "../../src/commands";
+import {registerGroup as registerPubGroup, MemeCommand, SoundCommand} from "../../src/commands";
 import {getUserFromMention} from "../../src/utilities";
 
 export interface userEventObj {
@@ -50,26 +49,24 @@ class KitchenSink extends CommandoBot {
             .registerGroups([
                 ['fun', 'Odds and Ends'],
                 ['memes', 'Gotta Post Em All!'],
-                ['audio', 'Can you hear me now?'],
-                ['gaming', 'E-sports and such']
+                ['audio', 'Can you hear me now?']
             ]);
 
         // uncomment if pub env is present
         // const pub = new Pubg(db, env.pubg);
-        // const pubCmd = new PubgCommand(pub, bot.client);
-        // bot.client.registry.registerCommand(pubCmd);
+        // registerPubGroup(pub, bot.client);
 
         // uncomment if szuru env is present
         // const szuru = new Szurubooru(env.szurubooru.endpoints, env.szurubooru.token);
         // const memeCmd = new MemeCommand(szuru, bot.client);
         // bot.client.registry.registerCommand(memeCmd);
 
-        // uncomment if sounds are present
-        // const player = new ClipPlayer(sounds, path.join(__dirname, 'sounds'));
-        // const soundCmd = new SoundCommand(player, bot.client);
-        // bot.client.registry.registerCommand(soundCmd);
+        // doorbell sound from https://freesound.org/s/275072/
+        const player = new ClipPlayer(sounds, path.resolve(path.join(__dirname, 'sounds')));
+        const soundCmd = new SoundCommand(player, bot.client);
+        bot.client.registry.registerCommand(soundCmd);
 
-        const hello = new HelloCommand(bot.client);
+        bot.client.registry.registerCommand(HelloCommand);
 
         // @ts-ignore
         bot.client.dispatcher.addInhibitor(msg => {
