@@ -90,14 +90,18 @@ myBot.once('ready', () => {
 but extends event listener execution to allow an early exit if your listener returns `true`. This is helpful if one listener meets a condition you want to act on but prevent any later listeners from acting as well.
 
 ```js
+// A user sends a message with 'say something important'
+
+// this event is registered first
 myBot.on('message', async (message) => {
-    if(message.content.indexOf('say something') !== -1) {
+    if(message.content.includes('say something')) {
         await message.channel.send('Something said.');   
-        return true; // prevents the below listener from executing -- so the bot doesn't respond twice
+        return true; // prevents the second listener from executing -- so the bot doesn't respond twice
     }
 });
+// this event is registered second
 myBot.on('message', async (message) => {
-       if(message.content.indexOf('something less important') !== -1) {
+       if(message.content.includes('something important')) {
            await message.channel.send('yes, less important');    
        }
 });
@@ -196,7 +200,7 @@ Refer to the `CARData` interface for a full description of how to configure a CA
 
 ## Commands
 
-Most features have a corresponding [commando](https://discord.js.org/#/docs/commando/v0.10.0/general/welcome) command. To use these you must initialize a `CommandBot` instead of `Bot`. Then the commands may be used as normal with a `CommandClient`.
+Most features have a corresponding [commando](https://discord.js.org/#/docs/commando/v0.10.0/general/welcome) command. To use these you must initialize a `CommandBot` instead of `Bot` from `disco-foxx`. Then the commands may be used as normal with a [`CommandClient`](https://discord.js.org/#/docs/commando/master/class/CommandoClient).
 
 ```js
 import { CommandBot } from 'disco-foxx';
