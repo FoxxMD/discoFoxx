@@ -170,7 +170,7 @@ export class CallAndResponse {
 
                 switch (callMatch) {
                     case 'all':
-                        if (!call.every(x => content.indexOf(normalizeStr(x, {preserveWhiteSpace})) !== -1)) {
+                        if (!call.every(x => content.includes(normalizeStr(x, {preserveWhiteSpace})))) {
                             continue;
                         }
                         foundCall = call.join(',');
@@ -183,7 +183,7 @@ export class CallAndResponse {
                         foundCall = call[0];
                         break;
                     case 'any':
-                        foundCall = call.find(x => content.indexOf(normalizeStr(x, {preserveWhiteSpace})) !== -1);
+                        foundCall = call.find(x => content.includes(normalizeStr(x, {preserveWhiteSpace})));
                         if (foundCall === undefined) {
                             continue;
                         }
@@ -286,7 +286,7 @@ export class CallAndResponse {
 
         if (this.verbose) {
             for (let str of verboseStrings) {
-                if (str.toLowerCase().indexOf('warn') !== -1) {
+                if (str.toLowerCase().includes('warn')) {
                     console.warn(str)
                 } else {
                     console.log(str);
