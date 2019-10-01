@@ -13,7 +13,7 @@ export class PubMatch extends AbstractPubgCommand {
             group: 'pubg',
             guildOnly: true,
             description: 'Get a summary of a finished PUBG match',
-            examples: ['!pub-match last @FoxxMD', '!pub-match 1c1650da-adde-452e-aa4b-970a0db893ca @FoxxMD'],
+            examples: ['!pub-match last', '!pub-match 1c1650da-adde-452e-aa4b-970a0db893ca'],
             args: [
                 {
                     key: 'match',
@@ -26,22 +26,42 @@ export class PubMatch extends AbstractPubgCommand {
                     type: 'member',
                     prompt: 'Which Discord User to get match for? Default is yourself',
                     default: (msg: CommandMessage) => msg.message.member
-                }
+                },
+                {
+                    key: 'location',
+                    type: 'string',
+                    prompt: stripIndents`Where should I post the results?
+                    Possible values: \`DM\` or \`Here\``,
+                    validate: (text: string) => {
+                        if (!['dm', 'here'].includes(text.toLocaleLowerCase())) {
+                            return 'Location must be either `DM` or `Here`'
+                        }
+                        return true;
+                    },
+                    default: 'dm'
+                },
             ]
         });
     }
 
     async run(cmdMsg: CommandMessage, args: object) {
-        const {match, user} = args as { match: string, user: GuildMember };
+        const {match, user, location} = args as { match: string, user: GuildMember, location: string };
         const {message: msg} = cmdMsg;
         try {
-            if (match === 'last') {
-                const func = await this.pub.displayGroupMatch(user);
-                return func(msg);
+            const result = match === 'last' ? await this.pub.displayGroupMatch(user) : await this.pub.displayGroupMatch(user, match);
+            switch (location.toLocaleLowerCase()) {
+                case 'dm':
+                    if (msg.deletable) {
+                        await msg.delete();
+                    }
+                    return cmdMsg.direct(result);
+                    //return msg.author.send(result);
+                case 'here':
+                    return cmdMsg.say(result);
+                    //return msg.channel.send(result);
+                default:
+                    return msg.channel.send('Location must be either `DM` or `Here`');
             }
-            const func = await this.pub.displayGroupMatch(user, match);
-            return func(msg);
-
         } catch (e) {
             if (e instanceof PubError) {
                 return msg.channel.send(e.message);

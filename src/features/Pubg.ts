@@ -127,7 +127,7 @@ export class Pubg {
 
     }
 
-    async displayGroupMatch(user: GuildMember, matchId?: string): Promise<Function> {
+    async displayGroupMatch(user: GuildMember, matchId?: string): Promise<string> {
         const pubUser = await this.getPubgUserFromMember(user);
         const match = await this.getMatch(pubUser, matchId);
         const roster = match.rosters.find(x => x.participants.some(y => y.playerId === pubUser.pubId));
@@ -168,10 +168,8 @@ export class Pubg {
         // };
 
 
-        return (m: Message) => {
-            const content = `${roster.hasWon ? '**Winner Winner, Chicken Dinner!**\n' : ''}${matchSummary}\n\n${rosterSummary}\n\`\`\`${table.toString()}\`\`\`\n**Replay**: https://pubg-replay.com/match/pc/${match.id}`;
-            return m.channel.send(content.substring(0, 2000));
-        };
+        const content = `${roster.hasWon ? '**Winner Winner, Chicken Dinner!**\n' : ''}${matchSummary}\n\n${rosterSummary}\n\`\`\`${table.toString()}\`\`\`\n**Replay**: https://pubg-replay.com/match/pc/${match.id}`;
+        return content.substring(0, 2000);
     }
 
     private matchSummary(match: Match) {
