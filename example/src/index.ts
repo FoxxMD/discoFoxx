@@ -7,7 +7,7 @@ import {open} from 'sqlite';
 import HelloCommand from './commands/fun/hello';
 import {CallAndResponse, Pubg, ClipPlayer, Szurubooru} from "../../src/features";
 import {BotConstructorInterface, CommandoBot} from "../../src";
-import {replyOnUsers} from "../../src/filters";
+import {replyToMessage} from "../../src/eventHelpers";
 import {registerGroup as registerPubGroup, MemeCommand, SoundCommand} from "../../src/commands";
 import {getUserFromMention} from "../../src/utilities";
 
@@ -26,7 +26,7 @@ class KitchenSink extends CommandoBot {
     createMessageRoutines = (): userEventObj[] => {
         const car = new CallAndResponse(carData, this.client.user, true);
 
-        const CAR = replyOnUsers(
+        const CAR = replyToMessage(
             (msg: Message) => car.process(msg),
             {
                 delay: {max: 1}, // delay maximum 1 second

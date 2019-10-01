@@ -25,7 +25,7 @@ export interface replyOpts {
 // * restricting execution based on which channel message is from (channels)
 // * adding a arbitrary chance that execution will occur (chance)
 // * delaying final execution randomly based on an interval of seconds (delay)
-export const replyOnUsers = (func: Function, opts?: replyOpts) => async (message: Message) => {
+export const replyToMessage = (func: Function, opts?: replyOpts) => async (message: Message) => {
 
     const {
         delay: {
@@ -56,11 +56,11 @@ export const replyOnUsers = (func: Function, opts?: replyOpts) => async (message
         }
     }
 
-    // if the userNames array is empty it essentially means "execute on any user"
+    // if the userNames array is empty it means "execute on any user"
     if (userNames.length > 0) {
-        const messageUser = message.author.username;
+        const messageUser = message.author.username.toLocaleLowerCase();
         const foundUser = userNames.find(x => {
-            return x === messageUser;
+            return x.toLocaleLowerCase() === messageUser;
         });
         if (foundUser === undefined) {
             return;
@@ -68,7 +68,7 @@ export const replyOnUsers = (func: Function, opts?: replyOpts) => async (message
             // only want to log if verbose *and* we are looking for a specific user to reduce log noise
             verboseStrings.push(`Found ${foundUser}`);
         }
-    } else if(!allowBot && message.author.bot) {
+    } else if (!allowBot && message.author.bot) {
         // don't reply to bot, but only if a bot username isn't explicitly specified (above)
         return;
     }
@@ -76,7 +76,7 @@ export const replyOnUsers = (func: Function, opts?: replyOpts) => async (message
     // if channels array is empty this essentially means "execute on any channel"
     if (channels.length > 0) {
         // @ts-ignore
-        if (!channels.includes(message.channel.name)) {
+        if (!channels.map(x => x.toLocaleLowerCase()).includes(message.channel.name.toLocaleLowerCase())) {
             return;
         } else if (verbose) {
             // only want to log if verbose *and* we are looking for a specific channel to reduce log noise
@@ -102,17 +102,18 @@ export const replyOnUsers = (func: Function, opts?: replyOpts) => async (message
         console.group();
     }
 
-    // every feature function should return a new function with the same arguments (or at least 1 argument of 'message') if it wants to be executed
+    // if a feature wants a delay wrapper its function should return a new function with the same arguments (or at least 1 argument of 'message')
     // this sets us up to have a ready execution with the specified result/behavior
-    // and lets replyFunctions know that it can delay (if necessary) a successful function execution
-    //
-    // if the result of the feature function is not a function we do not delay as this implies the feature function will not execute any bot behavior
-    // EX does not find a trigger term or a chance comparison failed, or not in a voice channel for sound play, etc...
-    const readyFunc = await func(message, verbose);
-    if (typeof readyFunc === 'function') {
+    // and lets us know that it can delay (if necessary) a successful function execution
+    const result = await func(message, verbose);
+
+    if (verbose) {
+        console.groupEnd();
+    }
+
+    if (typeof result === 'function') {
 
         if (verbose) {
-            console.groupEnd();
             console.log(`${functionNameHint} ready to execute`);
         }
         if (min !== 0 || max !== 0) {
@@ -134,12 +135,13 @@ export const replyOnUsers = (func: Function, opts?: replyOpts) => async (message
         if (verbose) {
             console.log(`Executing ${functionNameHint}`)
         }
-        readyFunc(message);
+        result(message);
         // return true to let routine loop know it should stop now
         return true;
     }
+
     if (verbose) {
-        console.log(`${functionNameHint} matched scenario failed`);
+        console.log(`${functionNameHint} ${result === true ? 'matched true' : 'did not match true'}`);
     }
-    return false;
+    return result;
 };
