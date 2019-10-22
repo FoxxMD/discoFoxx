@@ -1,9 +1,8 @@
-import { Command, CommandMessage, CommandoClient } from 'discord.js-commando';
-import { Pubg } from "../../../features/index";
-export declare class PubgCommand extends Command {
+import { Command, CommandInfo, CommandMessage, CommandoClient } from 'discord.js-commando';
+import { Pubg } from "../../../features";
+export declare abstract class AbstractPubgCommand extends Command {
     pub: Pubg;
-    constructor(pubInstance: Pubg, client: CommandoClient);
+    protected constructor(pubInstance: Pubg, client: CommandoClient, info: CommandInfo);
     hasPermission(msg: CommandMessage): boolean;
-    run(msg: CommandMessage, args: object): Promise<any>;
 }
-export default PubgCommand;
+export default AbstractPubgCommand;
