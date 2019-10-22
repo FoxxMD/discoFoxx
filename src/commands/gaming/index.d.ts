@@ -1,1 +1,2 @@
-export * from './pubg';
+export * from './pubg/index';
+export * from './dice';
