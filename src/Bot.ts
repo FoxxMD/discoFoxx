@@ -1,12 +1,10 @@
-import {open, Database} from 'sqlite';
 import {Client} from "discord.js";
 import {szuruEnv, pubgEnv} from "./features";
 
 export interface BotConstructorInterface {
     client?: Client;
     env: Environment;
-    name?: string,
-    db?: Database
+    name?: string
 }
 
 export interface Environment {
@@ -38,13 +36,12 @@ export class Bot {
     name: string;
     client: Client;
     env: Environment;
-    db!: Database;
 
     protected registeredEvents: string[] = [];
     protected rEvents!: Record<string, eventObj[]>;
 
     constructor(props: BotConstructorInterface) {
-        const {client, env, db, name = 'Bot'} = props;
+        const {client, env, name = 'Bot'} = props;
         this.name = name;
         this.rEvents = {};
         if (client === undefined) {
@@ -62,21 +59,9 @@ export class Bot {
         if (this.env.discord.token === undefined) {
             throw new Error(`'discord' object in env must contains a 'token' property`);
         }
-
-        if (db !== undefined) {
-            this.db = db;
-        }
     }
 
     private initEvents = () => {
-        this.addEvent('ready', {
-            type: eventType.BOT_PRE,
-            name: 'initDB',
-            runOnce: true,
-            func: async () => {
-                await this.initializeDB();
-            }
-        });
         this.addEvent('ready', {
             type: eventType.BOT_PRE,
             name: 'Output Bot Ready',
@@ -144,11 +129,5 @@ export class Bot {
     public run = async () => {
         this.initEvents();
         await this.client.login(this.env.discord.token);
-    };
-
-    protected initializeDB = async (): Promise<void> => {
-        if (this.db === undefined) {
-            this.db = await open(':memory:');
-        }
     };
 }
