@@ -24,7 +24,7 @@ export interface CARData {
             preserveUrl?: boolean;
         };
         call?: {
-            match?: ('any' | 'all' | 'only');
+            match?: string;
         };
         message?: {
             mention?: null | boolean;

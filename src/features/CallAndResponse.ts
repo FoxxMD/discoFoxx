@@ -31,7 +31,7 @@ export interface CARData {
             preserveUrl?: boolean,
         },
         call?: {
-            match?: ('any' | 'all' | 'only') // determines what conditions need to be met for calls
+            match?: string // determines what conditions need to be met for calls
             // any => any string in a call array can trigger a response
             // all => all strings in a call array must be present to trigger a response
             // only => assumes only one string in call array. the message content must only be this string
