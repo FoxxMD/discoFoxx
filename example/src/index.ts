@@ -8,7 +8,7 @@ import HelloCommand from './commands/fun/hello';
 import {CallAndResponse, Pubg, ClipPlayer, Szurubooru} from "../../src/features";
 import {BotConstructorInterface, CommandoBot} from "../../src";
 import {replyToMessage} from "../../src/eventHelpers";
-import {registerGroup as registerPubGroup, MemeCommand, SoundCommand} from "../../src/commands";
+import {registerGroup as registerPubGroup, MemeCommand, SoundCommand, DiceCommand} from "../../src/commands";
 import {getUserFromMention} from "../../src/utilities";
 
 export interface userEventObj {
@@ -49,7 +49,8 @@ class KitchenSink extends CommandoBot {
             .registerGroups([
                 ['fun', 'Odds and Ends'],
                 ['memes', 'Gotta Post Em All!'],
-                ['audio', 'Can you hear me now?']
+                ['audio', 'Can you hear me now?'],
+                ['tabletop', 'Roll initiative!']
             ]);
 
         // uncomment if pub env is present
@@ -64,7 +65,8 @@ class KitchenSink extends CommandoBot {
         // doorbell sound from https://freesound.org/s/275072/
         const player = new ClipPlayer(sounds, path.resolve(path.join(__dirname, 'sounds')));
         const soundCmd = new SoundCommand(player, bot.client);
-        bot.client.registry.registerCommand(soundCmd);
+        const dice = new DiceCommand(undefined, bot.client);
+        bot.client.registry.registerCommands([soundCmd, dice]);
 
         bot.client.registry.registerCommand(HelloCommand);
 
