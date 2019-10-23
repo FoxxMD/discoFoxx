@@ -1,7 +1,9 @@
-import {Database} from "sqlite";
 import {Match, PlatformRegion, Player, PubgAPI, Roster} from 'pubg-typescript-api';
-import {GuildMember, Message} from "discord.js";
+import {GuildMember} from "discord.js";
 import Table from 'cli-table3';
+import {EntityRepository, MikroORM, SchemaGenerator} from "mikro-orm";
+import {DiscordPubAssociation} from "./entities/DiscordPubAssociation";
+import {PartialMikroOrmOpts} from "../..";
 
 export interface pubgEnv {
     token: string,
@@ -12,26 +14,25 @@ export interface pubgEnv {
     }
 }
 
-export interface pubgUser {
-    id: number,
-    snowflake: string,
-    discordName: string,
-    pubId: string,
-    pubName: string,
-}
+const defaultOrmOpts = {
+    entities: [DiscordPubAssociation],
+    entitiesDirsTs: ['./entities'],
+    baseDir: __dirname,
+};
 
 export class PubError extends Error {
 
 }
 
 export class Pubg {
-    db: Database;
+    orm!: MikroORM;
+    assocRepo!: EntityRepository<DiscordPubAssociation>;
     whitelist: string[];
     blacklist: string[];
     ops: string[];
     api: PubgAPI;
 
-    constructor(db: Database, env: pubgEnv) {
+    constructor(ormOpts: PartialMikroOrmOpts, env: pubgEnv) {
         const {
             token, acl: {
                 whitelist = [],
@@ -39,41 +40,44 @@ export class Pubg {
                 ops = ['admin']
             } = {}
         } = env;
-        this.db = db;
         this.whitelist = whitelist;
         this.blacklist = blacklist;
         this.ops = ops;
-        this.createDB().then(() => null);
+        this.createDB({...defaultOrmOpts, ...ormOpts}).then(() => null);
         this.api = new PubgAPI(token, PlatformRegion.STEAM);
     }
 
     async setPlayer(user: GuildMember, name: string): Promise<void> {
-        const existingUser: (pubgUser | undefined) = await this.db.get('SELECT * from main.pubgUsers where snowflake = ?', user.id);
-        const existingName: (pubgUser | undefined) = await this.db.get('SELECT * from main.pubgUsers where pubName = ?', name);
+
+        const existingUser = await this.assocRepo.findOne({snowflake: user.id});
+        const existingName = await this.assocRepo.findOne({pubName: name});
 
         const player = await this.getPubgPlayerByName(name);
 
         // if name is already in DB but not for the user we are setting for it for then we need to delete it
         // this assumes we've already done a permissions check in the command to prevent regular users from mucking up everyone else's names
-        if (existingName !== undefined && existingName.snowflake !== user.id) {
-            await this.db.run('DELETE FROM main.pubgUsers where id = ? ', existingName.id);
+        if (existingName !== null && existingName.snowflake !== user.id) {
+            await this.assocRepo.removeAndFlush(existingName);
         }
 
         // if the user already exists in the DB then we just update their pubname and pub id
-        if (existingUser !== undefined) {
-            await this.db.run('UPDATE main.pubgUsers SET pubName = ?, pubId = ? where id = ?', [name, player.id, existingUser.id]);
+        if (existingUser !== null) {
+            existingUser.pubName = name;
+            existingUser.pubId = player.id;
+            await this.assocRepo.persist(existingUser);
         } else {
-            // otherwise we create a new entry for the user
-            await this.db.run('INSERT INTO main.pubgUsers (snowflake, discordName, pubName, pubId) VALUES(?,?,?,?)', [user.id, user.displayName, name, player.id]);
+            const newUser = new DiscordPubAssociation(user.id, user.displayName, name, player.id);
+            await this.assocRepo.persist(newUser);
         }
+        await this.assocRepo.flush();
     }
 
     async pubNameExists(name: string): Promise<[boolean, string?]> {
-        const existingRow: (pubgUser | undefined) = await this.db.get('SELECT * FROM main.pubgUsers where pubName = ?', name);
-        if (existingRow === undefined) {
+        const existingUser = await this.assocRepo.findOne({pubName: name});
+        if (existingUser === null) {
             return [false];
         }
-        return [true, existingRow.discordName];
+        return [true, existingUser.discordName];
     }
 
     hasInteractionPermissions(user: GuildMember): boolean {
@@ -101,15 +105,15 @@ export class Pubg {
         }
     }
 
-    private async getPubgUserFromMember(user: GuildMember): Promise<pubgUser> {
-        const pubUser = await this.db.get('SELECT * from main.pubgUsers where snowflake = ?', [user.id]);
-        if (pubUser === undefined) {
+    private async getPubgUserFromMember(user: GuildMember): Promise<DiscordPubAssociation> {
+        const pubUser = await this.assocRepo.findOne({snowflake: user.id});
+        if (pubUser === null) {
             throw new PubError(`PUBG Username not set for ${user.user.username}, see \`!pub-setuser help\``);
         }
         return pubUser;
     }
 
-    private async getMatch(user: (GuildMember | pubgUser), matchVal?: string) {
+    private async getMatch(user: (GuildMember | DiscordPubAssociation), matchVal?: string) {
         let matchId = matchVal;
         try {
             if (matchId === undefined) {
@@ -180,14 +184,21 @@ export class Pubg {
         return `Team placed in position **${roster.rank}**`;
     }
 
-    private async createDB() {
-        await this.db.run(`CREATE TABLE IF NOT EXISTS
-        pubgUsers (
-        id INTEGER PRIMARY KEY,
-        snowflake text,
-        discordName text,
-        pubName text,
-        pubId text
-        );`);
+    private async createDB(opts: any) {
+        this.orm = await MikroORM.init(opts);
+        this.assocRepo = this.orm.em.getRepository(DiscordPubAssociation);
+        const generator = new SchemaGenerator(this.orm.em.getDriver(), this.orm.getMetadata());
+        const dump = generator.generate();
+
+        //TODO check if any table exists and if not then create schema
+
+        // await this.db.run(`CREATE TABLE IF NOT EXISTS
+        // pubgUsers (
+        // id INTEGER PRIMARY KEY,
+        // snowflake text,
+        // discordName text,
+        // pubName text,
+        // pubId text
+        // );`);
     }
 }

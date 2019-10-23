@@ -41,6 +41,7 @@
     "discord.js": "^11.5.1",
     "discord.js-commando": "^0.10.0",
     "emoji-regex": "^8.0.0",
+    "mikro-orm": "^2.7.9",
     "node-fetch": "^2.6.0",
     "node-opus": "^0.3.2",
     "pubg-typescript-api": "^1.6.0",
