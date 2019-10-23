@@ -14,7 +14,6 @@ export interface Environment {
     szurubooru?: szuruEnv,
     pubg?: pubgEnv
     debug?: boolean
-    commandPrefix?: string
 }
 
 
