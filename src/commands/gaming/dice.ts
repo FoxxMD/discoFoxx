@@ -15,7 +15,7 @@ export class DiceCommand extends Command {
 
     dice: Dice;
 
-    constructor(dice = new Dice(), client: CommandoClient) {
+    constructor(client: CommandoClient, dice = new Dice()) {
         super(client, {
             name: 'roll',
             group: 'tabletop',

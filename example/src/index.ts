@@ -8,7 +8,7 @@ import HelloCommand from './commands/fun/hello';
 import {CallAndResponse, Pubg, ClipPlayer, Szurubooru} from "../../src/features";
 import {BotConstructorInterface, CommandoBot} from "../../src";
 import {replyToMessage} from "../../src/eventHelpers";
-import {registerGroup as registerPubGroup, MemeCommand, SoundCommand, DiceCommand} from "../../src/commands";
+import {registerGroup as registerPubGroup, MemeCommand, SoundCommand, DiceCommand, GenericCheckCommand} from "../../src/commands";
 import {getUserFromMention} from "../../src/utilities";
 
 export interface userEventObj {
@@ -65,8 +65,9 @@ class KitchenSink extends CommandoBot {
         // doorbell sound from https://freesound.org/s/275072/
         const player = new ClipPlayer(sounds, path.resolve(path.join(__dirname, 'sounds')));
         const soundCmd = new SoundCommand(player, bot.client);
-        const dice = new DiceCommand(undefined, bot.client);
-        bot.client.registry.registerCommands([soundCmd, dice]);
+        const dice = new DiceCommand(bot.client);
+        const genericCheck = new GenericCheckCommand(bot.client);
+        bot.client.registry.registerCommands([soundCmd, dice, genericCheck]);
 
         bot.client.registry.registerCommand(HelloCommand);
 
