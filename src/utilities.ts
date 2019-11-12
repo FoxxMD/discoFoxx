@@ -59,7 +59,8 @@ export const timeStamp = (date: string | undefined = undefined, locale = undefin
 };
 
 export const replaceWithContext = (content: string, message: Message) => {
-    return content.replace(/{{[^{}]*}}/g, (match) => {
+    // replace custom template variables
+    const templateReplaced = content.replace(/{{[^{}]*}}/g, (match) => {
         const {author, channel, mentions: {users}} = message;
         const channelName = 'name' in channel ? channel.name : '';
         const mentionedUsers: Collection<Snowflake, User> | never[] = users;
@@ -86,6 +87,20 @@ export const replaceWithContext = (content: string, message: Message) => {
                 return '';
         }
     });
+    if ('guild' in message.channel) {
+        const guild = message.channel.guild;
+        // replace custom emojis
+        // regex from https://stackoverflow.com/a/49783944
+        return templateReplaced.replace(/:[^:\s]*(?:::[^:\s]*)*:/g, (match) => {
+            const cleanMatch = match.substring(1, match.length - 1);
+            const foundCustom = guild.emojis.find(x => x.name === cleanMatch || x.id === cleanMatch);
+            if(foundCustom !== undefined) {
+                return foundCustom.toString();
+            }
+            return match;
+        });
+    }
+    return templateReplaced;
 };
 
 export const getUserFromMention = (content: string, mentions: Collection<Snowflake, User>) => {
