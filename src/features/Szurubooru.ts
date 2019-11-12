@@ -8,7 +8,8 @@ export interface szuruEnv {
     endpoints: {
         frontend: string,
         backend: string
-    }
+    },
+    safety?: string,
 }
 
 export interface szuruEndpoints {
@@ -54,13 +55,20 @@ export class Szurubooru {
     private readonly frontend: string;
     private readonly backend: string;
     private readonly token: string;
+    private readonly safety: string;
 
     private readonly api: Function;
 
-    constructor(endpoints: szuruEndpoints, token: string) {
+    private readonly safetyLevels = ['safe','sketchy','unsafe'];
+
+    constructor(endpoints: szuruEndpoints, token: string, safety: string = 'safe') {
         this.frontend = endpoints.frontend;
         this.backend = endpoints.backend;
         this.token = token;
+        if(!this.safetyLevels.includes(safety.toLowerCase())) {
+            throw new Error('Safety Level must be one of: safe, sketchy, unsafe');
+        }
+        this.safety = safety.toLowerCase();
         this.api = makeApiCall(this.backend, this.token);
     }
 
@@ -98,17 +106,25 @@ export class Szurubooru {
             return (msg: Message) => msg.channel.send('Unknown error occurred but has been logged 🤒')
         }
         if (posts.results.length === 0) {
-            return (msg: Message) => msg.channel.send(`😳 No memes found with the tags: ${tags.join(' ')}`);
+            return (msg: Message) => msg.channel.send(`😳 No memes found with the tags: **${tags.join(' ')}**`);
         }
+        let availableMemes = [...posts.results];
         let acceptableMeme = false;
         let contentUrl: string = '';
-        while (!acceptableMeme) {
-            const meme = posts.results[randomIntFromInterval(0, posts.results.length)];
+        const acceptableIndex = this.safetyLevels.indexOf(this.safety);
+        while (!acceptableMeme && availableMemes.length > 0) {
+            const randomIndex = randomIntFromInterval(0, availableMemes.length - 1);
+            const meme = availableMemes[randomIndex];
             const {safety, contentUrl: url} = meme;
-            if (safety === 'safe') {
+            if (this.safetyLevels.indexOf(safety) <= acceptableIndex) {
                 acceptableMeme = true;
+                contentUrl = url;
+            } else {
+                availableMemes.splice(randomIndex, 1);
             }
-            contentUrl = url;
+        }
+        if(!acceptableMeme) {
+            return (msg: Message) => msg.channel.send(`No memes with an acceptable level of **${this.safety}**${this.safety === 'safe' ? '' : ' or safer'} were found with the tags: **${tags.join(' ')}** 😳`);
         }
 
         return (msg: Message) => msg.channel.send({files: [`${this.frontend}/${contentUrl}`]});
