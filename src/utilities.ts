@@ -14,7 +14,7 @@ interface normalizeOpts {
     mentions?: any[] | Collection<Snowflake, User>
 }
 
-export const normalizeStr = (str: string, opts?: normalizeOpts) => {
+export const normalizeStr: (str: string, opts?: normalizeOpts) => string = (str: string, opts?: normalizeOpts) => {
     const {preserveWhiteSpace = false, preserveUrl = false, preserveCase = false, mentions} = opts || {};
     let finalStr = str;
     if (!preserveCase) {
@@ -94,7 +94,7 @@ export const replaceWithContext = (content: string, message: Message) => {
         return templateReplaced.replace(/:[^:\s]*(?:::[^:\s]*)*:/g, (match) => {
             const cleanMatch = match.substring(1, match.length - 1);
             const foundCustom = guild.emojis.find(x => x.name === cleanMatch || x.id === cleanMatch);
-            if(foundCustom !== undefined) {
+            if (foundCustom !== undefined) {
                 return foundCustom.toString();
             }
             return match;
@@ -125,9 +125,9 @@ export interface normalNumberOpts {
 // used to produce pseudo-random numbers for stat-based rolls
 export const normalNumber = (min: number, max: number, skew: number) => {
     let u = 0, v = 0;
-    while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
-    while(v === 0) v = Math.random();
-    let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+    while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+    while (v === 0) v = Math.random();
+    let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 
     num = num / 10.0 + 0.5; // Translate to 0 -> 1
     if (num > 1 || num < 0) num = normalNumber(min, max, skew); // resample between 0 and 1 if out of range
@@ -135,4 +135,8 @@ export const normalNumber = (min: number, max: number, skew: number) => {
     num *= max - min; // Stretch to fill range
     num += min; // offset to min
     return num;
+};
+
+export const between = (x: number, min: number, max: number) => {
+    return x >= min && x <= max;
 };

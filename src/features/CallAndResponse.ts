@@ -1,13 +1,32 @@
 import er from 'emoji-regex';
-import {normalizeStr, randomIntFromInterval, replaceWithContext, timeStamp} from "../utilities";
+import {between, normalizeStr, randomIntFromInterval, replaceWithContext, timeStamp} from "../utilities";
 import {DMChannel, Emoji, GuildChannel, Message, Permissions, User} from "discord.js";
 import {IChannels} from "../common/interfaces";
+// @ts-ignore
+import Sentiment from 'sentiment';
 
 const emojiRegex = er();
 
 export interface CARConfig {
     channels?: IChannels,
-    data: CARData[]
+    data: CARData[],
+    sentiment?: SentimentConfig,
+}
+
+export interface SentimentConfig {
+    enable?: boolean,
+    fuzzyThreshold?: number,
+    onNoMatch?: ('fallback' | 'skip'),
+}
+
+export interface Response {
+    content: string, // text to reply with
+    sentiment?: number | number[], // singular number means sentiment must round down (if positive) or round up (if negative) to this number. tuple means sentiment is within range of [min,max]
+    chance?: number,
+}
+
+function instanceOfResponse(object: any): object is Response {
+    return 'content' in object;
 }
 
 export interface ChanceConfig {
@@ -21,7 +40,7 @@ export interface ChanceConfig {
 export interface CARData {
     nickname?: string, // used for referencing other CARS data
     call: string[], // multiple terms can trigger a response
-    response?: string[] | string, // multiple responses possible for trigger. a response is chosen at random
+    response?: (string | Response)[] | string, // multiple responses possible for trigger. a response is chosen at random
     react?: string[] | string,
     chance?: ChanceConfig,
     channelChance?: Record<string, ChanceConfig>,
@@ -39,6 +58,7 @@ export interface CARData {
         message?: {
             mention?: null | boolean, // when null no mention (of bot) state required. true = mention must be present, false = must not have mention
         }
+        sentiment?: SentimentConfig,
     },
     channels?: IChannels  // specify channels to whitelist or blacklist
 }
@@ -49,15 +69,22 @@ export class CallAndResponse {
     snowflake: string;
     bot: User;
     verbose: boolean;
+    sentiment: Sentiment;
+    sentimentConfig: SentimentConfig;
 
     constructor(config: CARConfig, bot: User, verbose: boolean = false) {
-        const {channels = {}, data} = config;
+        const {channels = {}, data, sentiment = {}} = config;
 
         this.carData = data;
         this.bot = bot;
         this.snowflake = this.bot.id;
         this.verbose = verbose;
         this.channelDefaults = channels;
+        this.sentimentConfig = sentiment;
+        const {enable = false} = sentiment;
+        if (enable) {
+            this.sentiment = new Sentiment();
+        }
     }
 
     process = (message: Message) => {
@@ -109,7 +136,7 @@ export class CallAndResponse {
             const {
                 nickname = '',
                 call = [],
-                response = [],
+                response,
                 react = [],
                 chance = {},
                 channelChance = {},
@@ -123,7 +150,8 @@ export class CallAndResponse {
                     } = {},
                     message: {
                         mention: mentionPresent = null,
-                    } = {}
+                    } = {},
+                    sentiment = this.sentimentConfig,
                 } = {},
                 channels = this.channelDefaults
             }: CARData = cr;
@@ -157,6 +185,7 @@ export class CallAndResponse {
 
             // check for call
             let foundCall = undefined;
+            let content: string = '';
             if (call.length > 0) {
 
                 // most call terms are one word entries or whole phrases --
@@ -166,7 +195,7 @@ export class CallAndResponse {
                 // we use preserveWhiteSpace when short calls might accidentally be parsed from adjacent words
                 // EX owo => n[o wo]rries would trigger with no whitespace. preserve it to ensure owo intention
 
-                const content = normalizeStr(messageContent, {preserveWhiteSpace, preserveUrl});
+                content = normalizeStr(messageContent, {preserveWhiteSpace, preserveUrl});
 
                 switch (callMatch) {
                     case 'all':
@@ -251,7 +280,7 @@ export class CallAndResponse {
             }
 
             // respond ops
-            if (response.length > 0 && canRespond) {
+            if (response !== undefined && canRespond) {
                 // should we respond
                 const respondChance = mentioned ? mentionChance : normalChance;
                 if ((Math.random() - 0.01 > respondChance * 0.01)) {
@@ -261,11 +290,14 @@ export class CallAndResponse {
                     matchString.push('Respond: Yes');
                 }
                 // get random response
-                let responses = undefined;
-                if (typeof responses === 'string') { // we're looking for a nickname
+                let responses: undefined | (string | Response)[] = undefined;
+                if (typeof response === 'string') { // we're looking for a nickname
                     const foundCar = this.carData.find(x => x.nickname === response);
                     if (foundCar === undefined) {
                         matchString.push(`WARN: Could not match nickname ${response} for a response`);
+                        warn = true;
+                    } else if (foundCar.response === undefined || typeof foundCar.response === 'string') {
+                        matchString.push(`WARN: nickname match for ${response} resulted in an undefined|string response property`);
                         warn = true;
                     } else {
                         responses = foundCar.response;
@@ -274,7 +306,75 @@ export class CallAndResponse {
                     responses = response;
                 }
                 if (responses !== undefined) {
-                    responseContent.push(replaceWithContext(responses[randomIntFromInterval(1, response.length) - 1], message));
+                    let normalizedResponses: Response[] = responses
+                        .filter((x) => {
+                            if (typeof x !== 'string' && !instanceOfResponse(x)) {
+                                verboseStrings.push(`A response value on calls of ${call.join(',')} was not a string or Response`);
+                                warn = true;
+                                return false;
+                            }
+                            return true;
+                        })
+                        .map((x) => {
+                            if (typeof x === 'string') {
+                                return {
+                                    content: x,
+                                    sentiment: [0, 0],
+                                    chance: 100,
+                                }
+                            }
+                            return x;
+                        });
+                    if (sentiment.enable) {
+                        const {
+                            fuzzyThreshold,
+                            onNoMatch = 'fallback',
+                        } = sentiment;
+                        const result = this.sentiment.analyze(normalizeStr(messageContent, {preserveWhiteSpace: true, preserveUrl: false}));
+                        const sentimentString = [`Sentiment ${result.score} -> ${fuzzyThreshold === undefined ? 'no fuzz' : `fuzz ${fuzzyThreshold}`}`];
+                        const filteredResponses = normalizedResponses.filter((x) => {
+                            let score = result.comparative;
+                            let sentimentVal = x.sentiment;
+                            if (sentimentVal === undefined) {
+                                sentimentVal = [0, 0];
+                            } else if (typeof sentimentVal === 'number') {
+                                sentimentVal = [sentimentVal, sentimentVal];
+                                score = Math.round(score);
+                            }
+                            let [min, max] = sentimentVal;
+                            if (between(score, min, max)) {
+                                // verboseStrings.push(`Sentiment matched: ${min} | ${score} | ${max}`);
+                                return true;
+                            } else if (typeof fuzzyThreshold === 'number' && between(score, min - fuzzyThreshold, max + fuzzyThreshold)) {
+                                // verboseStrings.push(`Sentiment matched (fuzzy): ${min} | ${score} | ${max}`);
+                                return true;
+                            }
+                            return false;
+                        });
+                        if (filteredResponses.length > 0) {
+                            normalizedResponses = filteredResponses;
+                        } else if (onNoMatch !== 'fallback') {
+                            sentimentString.push('No Match, no fallback');
+                            verboseStrings.push(sentimentString.join(' -> '));
+                            continue;
+                        } else {
+                            sentimentString.push('No Match, fallback enabled');
+                            verboseStrings.push(sentimentString.join(' -> '));
+                        }
+                    }
+                    if (normalizedResponses.length === 1) {
+                        responseContent.push(replaceWithContext(normalizedResponses[0].content, message));
+                    } else {
+                        let selectedContent = false;
+                        while (!selectedContent) {
+                            const candidateResponse = normalizedResponses[randomIntFromInterval(1, normalizedResponses.length) - 1];
+                            const {chance = 100} = candidateResponse;
+                            if ((Math.random() - 0.01 < chance * 0.01)) {
+                                selectedContent = true;
+                                responseContent.push(replaceWithContext(candidateResponse.content, message));
+                            }
+                        }
+                    }
                 }
             }
             verboseStrings.push(matchString.join(' | '))

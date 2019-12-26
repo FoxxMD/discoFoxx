@@ -1,6 +1,6 @@
 {
   "name": "disco-foxx",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "A sly discord bot framework",
   "main": "index.js",
   "types": "index.d.ts",
@@ -44,6 +44,7 @@
     "node-fetch": "^2.6.0",
     "node-opus": "^0.3.2",
     "pubg-typescript-api": "^1.6.0",
+    "sentiment": "^5.0.2",
     "sqlite": "^3.0.3",
     "typescript": "^3.6.2",
     "url-search-params-polyfill": "^7.0.0"

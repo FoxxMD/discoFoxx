@@ -1,4 +1,9 @@
 {
+  "sentiment": {
+    "enable": true,
+    "fuzzyThreshold": 1,
+    "onNoMatch": "fallback"
+  },
   "data": [
     {
       "call": [
@@ -7,7 +12,15 @@
       ],
       "response": [
         "JS is neat",
-        "Fan of the language"
+        {
+          "content": "I am a fan of the language",
+          "sentiment": 1
+        },
+        {
+          "content": "I love javascript!!",
+          "sentiment": [1,3],
+          "chance": 60
+        }
       ],
       "react": [
         "\uD83D\uDE29",
