@@ -2,8 +2,7 @@ import er from 'emoji-regex';
 import {between, normalizeStr, randomIntFromInterval, replaceWithContext, timeStamp} from "../utilities";
 import {DMChannel, Emoji, GuildChannel, Message, Permissions, User} from "discord.js";
 import {IChannels} from "../common/interfaces";
-// @ts-ignore
-import Sentiment from 'sentiment';
+import SentimentAnalyzer from 'sentiment';
 
 const emojiRegex = er();
 
@@ -69,7 +68,7 @@ export class CallAndResponse {
     snowflake: string;
     bot: User;
     verbose: boolean;
-    sentiment: Sentiment;
+    sentiment: any;
     sentimentConfig: SentimentConfig;
 
     constructor(config: CARConfig, bot: User, verbose: boolean = false) {
@@ -83,7 +82,7 @@ export class CallAndResponse {
         this.sentimentConfig = sentiment;
         const {enable = false} = sentiment;
         if (enable) {
-            this.sentiment = new Sentiment();
+            this.sentiment = new SentimentAnalyzer();
         }
     }
 
