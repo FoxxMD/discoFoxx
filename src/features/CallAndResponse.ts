@@ -20,7 +20,7 @@ export interface SentimentConfig {
 }
 
 export interface Response {
-    content: string, // text to reply with
+    content: string | string[], // text to reply with. if an array one will be chosen at random
     sentiment?: number | number[], // singular number means sentiment must round down (if positive) or round up (if negative) to this number. tuple means sentiment is within range of [min,max]
     chance?: number,
 }
@@ -104,9 +104,12 @@ export class CallAndResponse {
         }
         contextString.push(`@${user}`);
 
-        let sentimentResult:any = undefined;
-        if(this.sentimentConfig.enable === true) {
-            sentimentResult = this.sentiment.analyze(normalizeStr(messageContent, {preserveWhiteSpace: true, preserveUrl: false}));
+        let sentimentResult: any = undefined;
+        if (this.sentimentConfig.enable === true) {
+            sentimentResult = this.sentiment.analyze(normalizeStr(messageContent, {
+                preserveWhiteSpace: true,
+                preserveUrl: false
+            }));
             contextString.push(`Sentiment Score: Absolute ${sentimentResult.score} Comparative ${sentimentResult.comparative.toFixed(3)}`);
         }
 
@@ -361,9 +364,9 @@ export class CallAndResponse {
                             continue;
                         }
                     }
-
+                    let content: string | string[] = '';
                     if (normalizedResponses.length === 1) {
-                        responseContent.push(replaceWithContext(normalizedResponses[0].content, message));
+                        content = normalizedResponses[0].content;
                     } else {
                         let selectedContent = false;
                         while (!selectedContent) {
@@ -371,9 +374,14 @@ export class CallAndResponse {
                             const {chance = 100} = candidateResponse;
                             if ((Math.random() - 0.01 < chance * 0.01)) {
                                 selectedContent = true;
-                                responseContent.push(replaceWithContext(candidateResponse.content, message));
+                                content = candidateResponse.content;
                             }
                         }
+                    }
+                    if (typeof content === 'string') {
+                        responseContent.push(replaceWithContext(content, message));
+                    } else {
+                        responseContent.push(replaceWithContext(content[randomIntFromInterval(1, content.length) - 1], message));
                     }
                 }
             }
