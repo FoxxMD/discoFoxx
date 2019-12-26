@@ -104,6 +104,12 @@ export class CallAndResponse {
         }
         contextString.push(`@${user}`);
 
+        let sentimentResult:any = undefined;
+        if(this.sentimentConfig.enable === true) {
+            sentimentResult = this.sentiment.analyze(normalizeStr(messageContent, {preserveWhiteSpace: true, preserveUrl: false}));
+            contextString.push(`Sentiment Score: Absolute ${sentimentResult.score} Comparative ${sentimentResult.comparative.toFixed(3)}`);
+        }
+
         let verboseStrings = [contextString.join(' -> ')];
         let responseContent: string[] = [];
         let reactions: (string | Emoji)[] = [];
@@ -325,15 +331,13 @@ export class CallAndResponse {
                             }
                             return x;
                         });
-                    if (sentiment.enable) {
+                    if (this.sentimentConfig.enable) {
                         const {
                             fuzzyThreshold,
                             onNoMatch = 'fallback',
                         } = sentiment;
-                        const result = this.sentiment.analyze(normalizeStr(messageContent, {preserveWhiteSpace: true, preserveUrl: false}));
-                        const sentimentString = [`Sentiment ${result.score} -> ${fuzzyThreshold === undefined ? 'no fuzz' : `fuzz ${fuzzyThreshold}`}`];
                         const filteredResponses = normalizedResponses.filter((x) => {
-                            let score = result.comparative;
+                            let score = sentimentResult.comparative;
                             let sentimentVal = x.sentiment;
                             if (sentimentVal === undefined) {
                                 sentimentVal = [0, 0];
@@ -354,14 +358,10 @@ export class CallAndResponse {
                         if (filteredResponses.length > 0) {
                             normalizedResponses = filteredResponses;
                         } else if (onNoMatch !== 'fallback') {
-                            sentimentString.push('No Match, no fallback');
-                            verboseStrings.push(sentimentString.join(' -> '));
                             continue;
-                        } else {
-                            sentimentString.push('No Match, fallback enabled');
-                            verboseStrings.push(sentimentString.join(' -> '));
                         }
                     }
+
                     if (normalizedResponses.length === 1) {
                         responseContent.push(replaceWithContext(normalizedResponses[0].content, message));
                     } else {
