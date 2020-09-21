@@ -1,14 +1,13 @@
 import carData from "./configs/CARS.json";
-import sounds from "./configs/sounds.json";
 import env from '../env.json';
 import {Message} from "discord.js";
 import path from 'path';
 import {open} from 'sqlite';
 import HelloCommand from './commands/fun/hello';
-import {CallAndResponse, Pubg, ClipPlayer, Szurubooru} from "../../src/features";
+import {CallAndResponse, Pubg, Szurubooru} from "../../src/features";
 import {BotConstructorInterface, CommandoBot} from "../../src";
 import {replyToMessage} from "../../src/eventHelpers";
-import {registerGroup as registerPubGroup, MemeCommand, SoundCommand, DiceCommand, GenericCheckCommand} from "../../src/commands";
+import {registerGroup as registerPubGroup, MemeCommand, DiceCommand, GenericCheckCommand} from "../../src/commands";
 import {getUserFromMention} from "../../src/utilities";
 
 export interface userEventObj {
@@ -61,13 +60,9 @@ class KitchenSink extends CommandoBot {
         // const szuru = new Szurubooru(env.szurubooru.endpoints, env.szurubooru.token);
         // const memeCmd = new MemeCommand(szuru, bot.client);
         // bot.client.registry.registerCommand(memeCmd);
-
-        // doorbell sound from https://freesound.org/s/275072/
-        const player = new ClipPlayer(sounds, path.resolve(path.join(__dirname, 'sounds')));
-        const soundCmd = new SoundCommand(player, bot.client);
         const dice = new DiceCommand(bot.client);
         const genericCheck = new GenericCheckCommand(bot.client);
-        bot.client.registry.registerCommands([soundCmd, dice, genericCheck]);
+        bot.client.registry.registerCommands([dice, genericCheck]);
 
         bot.client.registry.registerCommand(HelloCommand);
 

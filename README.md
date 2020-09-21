@@ -206,7 +206,6 @@ Most features have a corresponding [commando](https://discord.js.org/#/docs/comm
 import { CommandBot } from 'disco-foxx';
 import { ClipPlayer } from 'disco-foxx/features';
 import { SoundCommand } from 'disco-foxx/commands';
-import sounds from './sounds.json';
 import env from './env.json';
 
 const bot = new CommandBot({env})
@@ -214,7 +213,7 @@ const bot = new CommandBot({env})
 bot.client.registry
     .registerDefaults()
     .registerGroups([
-        ['audio', 'An Audio Command Group']
+        ['fun', 'A fun Command Group']
     ]);
 
 const player = new ClipPlayer(sounds, path.join(__dirname, 'sounds'));
