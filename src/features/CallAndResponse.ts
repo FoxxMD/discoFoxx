@@ -15,7 +15,7 @@ export interface CARConfig {
 export interface SentimentConfig {
     enable?: boolean,
     fuzzyThreshold?: number,
-    onNoMatch?: ('fallback' | 'skip'),
+    onNoMatch?: string // 'fallback' or 'skip'
 }
 
 export interface Response {
