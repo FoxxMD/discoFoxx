@@ -41,11 +41,8 @@ export class MemeCommand extends Command {
         this.memeApi = api;
     }
 
-    async run(message: CommandMessage, args: object) {
+    async run(message: CommandMessage, args: object | string | string[], fromPattern: boolean) {
         const {tags} = args as { tags: string[] };
-        if (args === undefined) {
-            return false;
-        }
         const func = tags.length === 0 ? await this.memeApi.randomMeme() : await this.memeApi.taggedMeme(tags);
         // @ts-ignore
         return func(message);
