@@ -1,6 +1,6 @@
 {
   "name": "disco-foxx",
-  "version": "0.1.3",
+  "version": "0.1.30",
   "description": "A sly discord bot framework",
   "main": "index.js",
   "types": "index.d.ts",
