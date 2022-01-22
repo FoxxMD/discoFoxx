@@ -40,7 +40,7 @@
     "discord.js": "^11.5.1",
     "discord.js-commando": "^0.10.0",
     "emoji-regex": "^8.0.0",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^3.1.1",
     "node-opus": "^0.3.2",
     "pubg-typescript-api": "^1.6.0",
     "sqlite": "^3.0.3",
